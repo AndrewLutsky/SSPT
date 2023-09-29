@@ -1,2 +1,2 @@
 # SSPT
-Outdaded Secondary Structure Tool using Golang
+Outdated Secondary Structure Tool using Golang
