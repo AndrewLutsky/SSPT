@@ -10,5 +10,5 @@ Outdated Secondary Structure Tool using Golang
 `SSPT` - Executable file for the program.
 
 # Authors:
-Jon Potter
-Shashank Katiyar
+- Jon Potter
+- Shashank Katiyar
