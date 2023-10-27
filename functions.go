@@ -127,12 +127,13 @@ func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap m
 	return predictionArray
 }
 
-// read in parameters as a dictionary
+// read in parameters as a dictionary - INCOMPLETE
 // Input: file string
 // Output: Map from amino acid character to a score given by that amino acid
-func ReadParametersDict(file string) map[string]map[string]int {
+func ReadParametersDict(file string) map[string]map[string]float64 {
 	//Create map
-	param := make(map[string]map[string]int)
+	param := make(map[string]map[string]float64)
+	namesToChars := NameToChar(Names.txt)
 	//open file
 	f, err := os.Open(file)
 	if err != nil {
@@ -146,8 +147,9 @@ func ReadParametersDict(file string) map[string]map[string]int {
 		// Split the line into a slice of strings
 		lineSplit := strings.Split(line, " ")
 
-		//First value is amino acid character
+		//First value is amino acid name
 		aminoChar := lineSplit[0]
+		aminoChar = namesToChar[aminoChar]
 
 		//Second value is P(a).
 		aminoScore, err := strconv.ParseInt(lineSplit[1], 10, 63)
@@ -157,6 +159,16 @@ func ReadParametersDict(file string) map[string]map[string]int {
 			panic(err)
 
 		}
+
+		//Third Value is P(b)
+
+		//Fourth value is P(turn)
+
+		//Fifth value is P(i+1)
+
+		//Sixth value is P(i+2)
+
+		//Seventh Value is P(i+3)
 
 		//Map the amino acid character to the amino acid score.
 		param[aminoChar] = int(aminoScore)
