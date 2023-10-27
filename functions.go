@@ -130,9 +130,9 @@ func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap m
 // read in parameters as a dictionary
 // Input: file string
 // Output: Map from amino acid character to a score given by that amino acid
-func ReadParametersDict(file string) map[string]int {
+func ReadParametersDict(file string) map[string]map[string]int {
 	//Create map
-	param := make(map[string]int)
+	param := make(map[string]map[string]int)
 	//open file
 	f, err := os.Open(file)
 	if err != nil {
@@ -149,7 +149,7 @@ func ReadParametersDict(file string) map[string]int {
 		//First value is amino acid character
 		aminoChar := lineSplit[0]
 
-		//Second value is amino acid score.
+		//Second value is P(a).
 		aminoScore, err := strconv.ParseInt(lineSplit[1], 10, 63)
 
 		//If there is an error panic.
@@ -166,3 +166,36 @@ func ReadParametersDict(file string) map[string]int {
 	// Return the parameters hashmap.
 	return param
 }
+
+//Function that reads amino acid string name to a character. See Names.txt to examine file mappings from names to chars
+//Input: A file name that contains mapping from amino acid name to amino acid char. (I.e. Isoleucine -> I)
+//Output: A hashmap that maps a amino acid name to amino acid character.
+func NameToChar(file string) map[string]string {
+	namesToChars := make(map[string]string)
+	//open file
+	f, err := os.Open(file)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		// Split the line into a slice of strings
+		lineSplit := strings.Split(line, ",")
+
+		//First value is amino acid character
+		aminoName := lineSplit[0]
+
+		
+		//Third value is one letter code.
+		aminoChar := lineSplit[2]
+
+
+		//Map the amino acid character to the amino acid score.
+		namesToChars[aminoName] = aminoChar
+
+	}
+}
+
