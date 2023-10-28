@@ -105,13 +105,13 @@ func ReadParameters(file string) [][]float64 {
 
 // Function to call the Chou-Fasman algorithm on a window of a sequence and return the prediction array
 // func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap map[rune]int) []int {
-func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap map[rune]int) PredArray {
+func ChouFasman(protein Protein, windowSize int, parameters [][]float64, aaIndexMap map[rune]int) PredArray {
 
 	// Define the prediction array
 	//predictionArray := make([]int, len(seq)) // 0: not determined, 1: helix, 2: sheet, 3: loop
-	predictionArray := make(PredArray, len(seq))
+	predictionArray := make(PredArray, len(protein.Sequence))
 
-	if len(seq) < windowSize+1 {
+	if len(protein.Sequence) < windowSize+1 {
 		fmt.Println("Sequence too short")
 		return predictionArray
 	}
@@ -119,9 +119,9 @@ func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap m
 	leftPointer := 0
 	rightPointer := windowSize - 1
 
-	for rightPointer < len(seq) {
+	for rightPointer < len(protein.Sequence) {
 		//predictionArray[leftPointer+windowSize/2] = ChouFasmanWindow(seq[leftPointer:rightPointer+1], parameters, aaIndexMap)
-		predictionArray[leftPointer+windowSize/2] = BetterChouFasmanWindow(seq[leftPointer:rightPointer+1], parameters, aaIndexMap)
+		predictionArray[leftPointer+windowSize/2] = BetterChouFasmanWindow(protein.Sequence[leftPointer:rightPointer+1], parameters, aaIndexMap)
 		leftPointer += 1
 		rightPointer += 1
 	}

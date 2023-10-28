@@ -15,6 +15,12 @@ type Protein struct {
 	Identifier string
 }
 
+type BetaSheet struct {
+	StartIndex int
+	EndIndex   int
+	Score      float64
+}
+
 type FASTAReader struct {
 	file *os.File
 }
