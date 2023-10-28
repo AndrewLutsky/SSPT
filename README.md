@@ -15,4 +15,4 @@ Outdated Secondary Structure Tool using Golang
 - Jon Potter
 - Shashank Katiyar
 - Andrew Lutsky
-
+- Rohit Nandakumar
