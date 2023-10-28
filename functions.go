@@ -104,10 +104,12 @@ func ReadParameters(file string) [][]float64 {
 }
 
 // Function to call the Chou-Fasman algorithm on a window of a sequence and return the prediction array
-func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap map[rune]int) []int {
+// func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap map[rune]int) []int {
+func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap map[rune]int) PredArray {
 
 	// Define the prediction array
-	predictionArray := make([]int, len(seq)) // 0: not determined, 1: helix, 2: sheet, 3: loop
+	//predictionArray := make([]int, len(seq)) // 0: not determined, 1: helix, 2: sheet, 3: loop
+	predictionArray := make(PredArray, len(seq))
 
 	if len(seq) < windowSize+1 {
 		fmt.Println("Sequence too short")
@@ -118,7 +120,8 @@ func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap m
 	rightPointer := windowSize - 1
 
 	for rightPointer < len(seq) {
-		predictionArray[leftPointer+windowSize/2] = ChouFasmanWindow(seq[leftPointer:rightPointer+1], parameters, aaIndexMap)
+		//predictionArray[leftPointer+windowSize/2] = ChouFasmanWindow(seq[leftPointer:rightPointer+1], parameters, aaIndexMap)
+		predictionArray[leftPointer+windowSize/2] = BetterChouFasmanWindow(seq[leftPointer:rightPointer+1], parameters, aaIndexMap)
 		leftPointer += 1
 		rightPointer += 1
 	}
@@ -130,10 +133,10 @@ func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap m
 // read in parameters as a dictionary - INCOMPLETE
 // Input: file string
 // Output: Map from amino acid character to a score given by that amino acid
-func ReadParametersDict(file string) map[string]map[string]float64 {
+func ReadParametersDict(file string) map[string]float64 {
 	//Create map
-	param := make(map[string]map[string]float64)
-	namesToChars := NameToChar(Names.txt)
+	param := make(map[string]float64)
+	namesToChars := NameToChar("Names.txt")
 	//open file
 	f, err := os.Open(file)
 	if err != nil {
@@ -149,7 +152,7 @@ func ReadParametersDict(file string) map[string]map[string]float64 {
 
 		//First value is amino acid name
 		aminoChar := lineSplit[0]
-		aminoChar = namesToChar[aminoChar]
+		aminoChar = namesToChars[aminoChar]
 
 		//Second value is P(a).
 		aminoScore, err := strconv.ParseInt(lineSplit[1], 10, 63)
@@ -171,7 +174,7 @@ func ReadParametersDict(file string) map[string]map[string]float64 {
 		//Seventh Value is P(i+3)
 
 		//Map the amino acid character to the amino acid score.
-		param[aminoChar] = int(aminoScore)
+		param[aminoChar] = float64(aminoScore)
 
 	}
 
@@ -179,9 +182,9 @@ func ReadParametersDict(file string) map[string]map[string]float64 {
 	return param
 }
 
-//Function that reads amino acid string name to a character. See Names.txt to examine file mappings from names to chars
-//Input: A file name that contains mapping from amino acid name to amino acid char. (I.e. Isoleucine -> I)
-//Output: A hashmap that maps a amino acid name to amino acid character.
+// Function that reads amino acid string name to a character. See Names.txt to examine file mappings from names to chars
+// Input: A file name that contains mapping from amino acid name to amino acid char. (I.e. Isoleucine -> I)
+// Output: A hashmap that maps a amino acid name to amino acid character.
 func NameToChar(file string) map[string]string {
 	namesToChars := make(map[string]string)
 	//open file
@@ -200,14 +203,12 @@ func NameToChar(file string) map[string]string {
 		//First value is amino acid character
 		aminoName := lineSplit[0]
 
-		
 		//Third value is one letter code.
 		aminoChar := lineSplit[2]
-
 
 		//Map the amino acid character to the amino acid score.
 		namesToChars[aminoName] = aminoChar
 
 	}
+	return namesToChars
 }
-

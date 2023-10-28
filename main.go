@@ -21,6 +21,7 @@ func main() {
 	// windowsize initialised
 	windowSize := 7
 
-	ChouFasman(seq, windowSize, parameters, aaIndexMap)
-	fmt.Println("hello world")
+	predArray := ChouFasman(seq, windowSize, parameters, aaIndexMap)
+	fmt.Println("\n\n\nPrediction Array:", predArray)
+	fmt.Println("\n\nFound Helicies:", IdentifyHelicies(predArray))
 }

@@ -1,13 +1,8 @@
 package main
 
-import (
-	"bufio"
-	"fmt"
-	"os"
-	"strconv"
-	"strings"
-)
+// Hey! Jon here- I commented this out because it was conflicting with functions.go Feel free to uncomment while you're working.
 
+/*
 // function to take a window sequence and return the average chou-fasman score of the window
 func ChouFasmanWindow(window string, parameters [][]float64, aaIndexMap map[rune]int) int {
 
@@ -126,3 +121,4 @@ func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap m
 	fmt.Println(predictionArray)
 	return predictionArray
 }
+*/
