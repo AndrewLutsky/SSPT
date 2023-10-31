@@ -19,9 +19,8 @@ type Helix struct {
 }
 
 type Turn struct {
-	StartIndex int
-	EndIndex   int
-	Score      int
+	Index int
+	Score int
 }
 
 // (Shashank) adding coordinates datatype for visualization

@@ -19,9 +19,20 @@ func BetterChouFasmanWindow(window string, parameters [][]float64, aaIndexMap ma
 		betaSheet += parameters[aaIndex][1]
 		loop += parameters[aaIndex][2]
 		f_i += parameters[aaIndex][3]
-		f_i1 += parameters[aaIndex][4]
-		f_i2 += parameters[aaIndex][5]
-		f_i3 += parameters[aaIndex][6]
+		//Need to find the next three residues and use those score to calculate the
+		//parameter scores for beta turns. Checks to make sure the next three residues are in range
+		//otherwise ignore.
+
+		/* NEEDS REVIEW */
+		if i+3 < len(window) {
+			aaIndexPlusOne := aaIndexMap[rune(window[i+1])]
+			aaIndexPlusTwo := aaIndexMap[rune(window[i+2])]
+			aaIndexPlusThree := aaIndexMap[rune(window[i+2])]
+
+			f_i1 += parameters[aaIndexPlusOne][4]
+			f_i2 += parameters[aaIndexPlusTwo][5]
+			f_i3 += parameters[aaIndexPlusThree][6]
+		}
 	}
 
 	var score CFScore

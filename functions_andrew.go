@@ -1,5 +1,9 @@
 package main
 
+import (
+	"fmt"
+)
+
 //Function to identify bends in the protein.
 
 /*
@@ -13,6 +17,12 @@ then a beta-turn is predicted at that location.
 */
 func IdentifyTurns(predArray PredArray) []Turn {
 	turns := make([]Turn, 0)
-
+	for i := 0; i < len(predArray)-3; i++ {
+		//Step 1 calculate the product of f(j) * f(j+1) * f(j+2) * f(j+3)
+		predArrayRes := predArray[i]
+		p_t := predArrayRes.F_i * predArrayRes.F_i1 * predArrayRes.F_i2 * predArrayRes.F_i3
+		fmt.Println(p_t)
+		//Step 2
+	}
 	return turns
 }
