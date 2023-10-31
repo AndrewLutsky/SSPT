@@ -13,3 +13,9 @@ type Helix struct {
 	EndIndex   int
 	Score      float64
 }
+
+// (Shashank) adding coordinates datatype for visualization
+
+type Coordinate struct {
+	X, Y, Z float64
+}

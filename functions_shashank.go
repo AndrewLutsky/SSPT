@@ -1,6 +1,13 @@
 package main
 
+import (
+	"fmt"
+	"math"
+	"os"
+)
+
 // Hey! Jon here- I commented this out because it was conflicting with functions.go Feel free to uncomment while you're working.
+// Sure, No issues!
 
 /*
 // function to take a window sequence and return the average chou-fasman score of the window
@@ -122,3 +129,165 @@ func ChouFasman(seq string, windowSize int, parameters [][]float64, aaIndexMap m
 	return predictionArray
 }
 */
+
+// VISUALIZATION FUNCTIONS BELOW
+
+// DISCLAIMER: I have assumed that there are exactly 4 amino acids in a helix turn and hence, each on lies on the
+// origin-XZ plane or the origin-YZ plane
+
+func Visualize(predSeq []int, pitch, aaDist float64) []Coordinate {
+
+	// REMEMBER, OUR PROTEIN IS ALONG THE Z AXIS (AND OUR COORDINATE SYSTEM IS Y-UP)
+	// an empty slice of coordinate objects, which will store the coordinates of each amino acid.
+	coordinates := make([]Coordinate, len(predSeq))
+	coordinates[0] = Coordinate{0, 0, 0}
+	// looping through the prediction sequence, and finding the coordinates of each amino acid
+	for char := 1; char < len(predSeq); char++ {
+		if predSeq[char] == 1 {
+			// helix
+			coordinates[char] = HelixCoordinate(predSeq, pitch, aaDist, char, coordinates[char-1])
+		} else if predSeq[char] == 2 {
+			// sheet
+			// temporally using the LoopCoordinates function instead of SheetCoordinates
+			coordinates[char] = LoopCoordinates(predSeq, pitch, aaDist, char, coordinates[char-1])
+		} else if predSeq[char] == 3 {
+			// loop
+			coordinates[char] = LoopCoordinates(predSeq, pitch, aaDist, char, coordinates[char-1])
+		} else {
+			panic("bad prediction (not helix/sheet/loop)")
+		}
+	}
+	return coordinates
+}
+
+// function to find the coordinates of an amino acid, which has been predicted to be a part of a sheet
+// we need to first check the number of bends in the sheet sequence and then decide the coordinates
+// func SheetCoordinates(predSeq []int, pitch, aaDist float64, char int, prevCoor Coordinate) Coordinate {
+
+// 	var coor Coordinate
+// 	var newSheet bool
+// 	if predSeq[char-1] != 2 {
+// 		newSheet = true
+// 	} else {
+// 		newSheet = false
+// 	}
+
+// 	return coor
+// }
+
+// function to find the coordinates of an amino acid, which has been predicted to be a part of a loop
+func LoopCoordinates(predSeq []int, pitch, aaDist float64, char int, prevCoor Coordinate) Coordinate {
+
+	var coor Coordinate
+
+	coor.X = 0
+	coor.Y = 0
+	coor.Z = prevCoor.Z + aaDist // incrementing by not the pitch but the distance between two amino acids
+
+	return coor
+}
+
+// this is a function to find out the coordinate of an amino acid, which has been predicted to be a part
+// of an alpha helix. it assumes that there are exactly 4 amino acids per turn in the helix
+// and it follows left hand corkscrew rule.
+func HelixCoordinate(predSeq []int, pitch, aaDist float64, char int, prevCoor Coordinate) Coordinate {
+
+	// This assumes that the previous amino acid was either from a loop (hence on z axis)
+	// or it was a part of alpha helix
+	var coor Coordinate
+	// location of the previous aa. Basically on which axis it lies.
+	prevLoc := FindXYQuadrant(prevCoor)
+	if prevLoc == 0 {
+		// previous aa was on the z axis, i.e. loop
+		coor.X = math.Sqrt(aaDist*aaDist - pitch*pitch) // this is how far off the z axis the aa will be
+		coor.Y = 0
+		coor.Z = prevCoor.Z + aaDist // incrementing by the distance because otherwise, PYMOL will make unncessary bond
+	} else if prevLoc == 1 {
+		// previous aa was a part of alpha helix
+		coor.X = 0
+		coor.Y = math.Sqrt(aaDist*aaDist - pitch*pitch)
+		coor.Z = prevCoor.Z + pitch
+	} else if prevLoc == 2 {
+		// previous aa was a part of alpha helix
+		coor.X = -math.Sqrt(aaDist*aaDist - pitch*pitch)
+		coor.Y = 0
+		coor.Z = prevCoor.Z + pitch
+	} else if prevLoc == 3 {
+		// previous aa was a part of alpha helix
+		coor.X = 0
+		coor.Y = -math.Sqrt(aaDist*aaDist - pitch*pitch)
+		coor.Z = prevCoor.Z + pitch
+	} else if prevLoc == 4 {
+		// previous aa was a part of alpha helix
+		coor.X = math.Sqrt(aaDist*aaDist - pitch*pitch)
+		coor.Y = 0
+		coor.Z = prevCoor.Z + pitch
+	} else {
+		panic("FindXYQuadrant function is returning a value it shouldn't")
+	}
+
+	// the distances between every two amino acids is not necessarily equal to aaDist
+	return coor
+}
+
+// function initially made with alpha helices in mind to categorize points
+// according to the axis they lie on
+func FindXYQuadrant(coor Coordinate) int {
+
+	// looking along z axis to find the quadrant
+	if coor.X == 0 && coor.Y == 0 {
+		// on the z axis
+		return 0
+	} else if coor.X > 0 && coor.Y == 0 {
+		// quad 1 and 4 boundary (angle 0)
+		return 1
+	} else if coor.X == 0 && coor.Y > 0 {
+		// quad 1 and 2 boundary (angle 90)
+		return 2
+	} else if coor.X < 0 && coor.Y == 0 {
+		// quad 2 and 3 boundary (angle 180)
+		return 3
+	} else if coor.X == 0 && coor.Y < 0 {
+		// quad 4 and 5 boundary (angle 270)
+		return 4
+	}
+	return -1 // shouldnt happen
+}
+
+// function to write the coordinates to a PDB file
+func WriteCoordinatesToPDB(coordinates []Coordinate, fileName string) error {
+	file, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for i, coord := range coordinates {
+		// Format follows the ATOM record type format for PDB
+		fmt.Fprintf(file, "ATOM  %5d  C   ALA A%4d    %8.3f%8.3f%8.3f  1.00  0.00           C  \n",
+			// show as water molecule instead of carbon atom
+			// fmt.Fprintf(file, "ATOM  %5d  O   HOH A%4d    %8.3f%8.3f%8.3f  1.00  0.00           C  \n",
+
+			i+1, i+1, coord.X, coord.Y, coord.Z)
+	}
+	return nil
+}
+
+// function to make a proxy secondary structure prediction array for testing visualization
+func TestVisualization(protein Protein, predArray []CFScore) []int {
+	// Testing visualization
+	// initialize the aaSecStruct int slice with size of the protein sequence
+	aaSecStruct := make([]int, len(protein.Sequence))
+	// for each tuple in the predArray, if the first element is max, then append 1 to the aaSecStruct slice
+	// if the second element is max, then append 2 to the aaSecStruct slice and so on
+	for itr, tuple := range predArray {
+		if tuple.Helix > tuple.Sheet && tuple.Helix > tuple.Loop {
+			aaSecStruct[itr] = 1
+		} else if tuple.Sheet > tuple.Helix && tuple.Sheet > tuple.Loop {
+			aaSecStruct[itr] = 2
+		} else {
+			aaSecStruct[itr] = 3
+		}
+	}
+	return aaSecStruct
+}

@@ -31,7 +31,9 @@ func GenerateFASTAReader(fileName string) *FASTAReader {
 		log.Panic(err)
 	}
 
-	defer file.Close()
+	// (Shashank) below line needed to be commented out to make the file non empty. Else, the ReadProteins
+	// function will return an empty slice
+	// defer file.Close()
 	return &FASTAReader{file: file}
 }
 

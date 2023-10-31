@@ -21,14 +21,25 @@ func main() {
 	// generate
 	reader := GenerateFASTAReader("sample_fasta_file.fasta")
 	proteins := ReadProteins(reader)
+	reader.file.Close() // closing the file after calling the ReadProteins function
 
 	// windowsize initialised
 	windowSize := 7
-
-	for _, protein := range proteins {
-		predArray := ChouFasman(protein, windowSize, parameters, aaIndexMap)
-		fmt.Println("\n\n\nPrediction Array:", predArray)
-		fmt.Println("\n\nFound Helicies:", IdentifyHelicies(predArray))
+	// made a slice of slice of CFScore, for each protein in fasta file
+	ProteinPredArray := make([][]CFScore, len(proteins))
+	for itr, protein := range proteins {
+		ProteinPredArray[itr] = ChouFasman(protein, windowSize, parameters, aaIndexMap)
+		fmt.Println("\n\n\nPrediction Array:", ProteinPredArray[itr])
+		fmt.Println("\n\nFound Helicies:", IdentifyHelicies(ProteinPredArray[itr]))
 	}
 
+	// Testing Visualization
+	aaSecStruct := TestVisualization(proteins[0], ProteinPredArray[0])
+	// call the visualization function
+	coordinates := Visualize(aaSecStruct, 0.9, 1.3)
+	// write the coordinates to a pdb file
+	err := WriteCoordinatesToPDB(coordinates, "pdb_files/testLessPitchMoreDist.pdb")
+	if err != nil {
+		fmt.Println(err)
+	}
 }
