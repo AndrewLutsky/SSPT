@@ -7,7 +7,7 @@ import (
 func main() {
 
 	// Read the parameters file
-	parameters := ReadParameters("dummy_parameters.txt")
+	parameters := ReadParameters("CFparameters.txt")
 	// print what was read
 	fmt.Println(parameters)
 
