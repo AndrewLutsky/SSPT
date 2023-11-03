@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/fogleman/gg"
 )
 
 func main() {
@@ -24,12 +26,12 @@ func main() {
 	reader.file.Close() // closing the file after calling the ReadProteins function
 
 	// windowsize initialised
-	windowSize := 7
+	windowSize := 4
 	// made a slice of slice of CFScore, for each protein in fasta file
 	ProteinPredArray := make([][]CFScore, len(proteins))
 	for itr, protein := range proteins {
 		ProteinPredArray[itr] = ChouFasman(protein, windowSize, parameters, aaIndexMap)
-		fmt.Println("\n\n\nPrediction Array:", ProteinPredArray[itr])
+		//fmt.Println("\n\n\nPrediction Array:", ProteinPredArray[itr])
 		fmt.Println("\n\nFound Helicies:", IdentifyHelicies(ProteinPredArray[itr]))
 		fmt.Println("\n\nFound Beta bends:, ", IdentifyTurns(protein, parameters, aaIndexMap))
 	}
@@ -43,4 +45,12 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
+
+	//Create Graphics Context
+	dc := gg.NewContext(500, 500)
+	dc.DrawCircle(250, 250, 40)
+	dc.SetRGB(0, 0, 0)
+	dc.Fill()
+	dc.SavePNG("out.png")
+
 }
