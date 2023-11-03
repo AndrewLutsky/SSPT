@@ -6,10 +6,6 @@ type CFScore struct {
 	Helix float64
 	Sheet float64
 	Loop  float64
-	F_i   float64
-	F_i1  float64
-	F_i2  float64
-	F_i3  float64
 }
 
 type Helix struct {

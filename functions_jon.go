@@ -6,11 +6,6 @@ func BetterChouFasmanWindow(window string, parameters [][]float64, aaIndexMap ma
 	alphaHelix := float64(0)
 	betaSheet := float64(0)
 	loop := float64(0)
-	//Needed toa dd new variables for ith residue, i+1, i+2...
-	f_i := float64(0)
-	f_i1 := float64(0)
-	f_i2 := float64(0)
-	f_i3 := float64(0)
 
 	// Calculate the score for the window
 	for i := 0; i < len(window); i++ {
@@ -18,31 +13,12 @@ func BetterChouFasmanWindow(window string, parameters [][]float64, aaIndexMap ma
 		alphaHelix += parameters[aaIndex][0]
 		betaSheet += parameters[aaIndex][1]
 		loop += parameters[aaIndex][2]
-		f_i += parameters[aaIndex][3]
-		//Need to find the next three residues and use those score to calculate the
-		//parameter scores for beta turns. Checks to make sure the next three residues are in range
-		//otherwise ignore.
-
-		/* NEEDS REVIEW */
-		if i+3 < len(window) {
-			aaIndexPlusOne := aaIndexMap[rune(window[i+1])]
-			aaIndexPlusTwo := aaIndexMap[rune(window[i+2])]
-			aaIndexPlusThree := aaIndexMap[rune(window[i+2])]
-
-			f_i1 += parameters[aaIndexPlusOne][4]
-			f_i2 += parameters[aaIndexPlusTwo][5]
-			f_i3 += parameters[aaIndexPlusThree][6]
-		}
 	}
 
 	var score CFScore
 	score.Helix = alphaHelix
 	score.Sheet = betaSheet
 	score.Loop = loop
-	score.F_i = f_i
-	score.F_i1 = f_i1
-	score.F_i2 = f_i2
-	score.F_i3 = f_i3
 
 	return score
 }

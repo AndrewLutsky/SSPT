@@ -31,6 +31,7 @@ func main() {
 		ProteinPredArray[itr] = ChouFasman(protein, windowSize, parameters, aaIndexMap)
 		fmt.Println("\n\n\nPrediction Array:", ProteinPredArray[itr])
 		fmt.Println("\n\nFound Helicies:", IdentifyHelicies(ProteinPredArray[itr]))
+		fmt.Println("\n\nFound Beta bends:, ", IdentifyTurns(protein, parameters, aaIndexMap))
 	}
 
 	// Testing Visualization
