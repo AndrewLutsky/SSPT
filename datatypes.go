@@ -1,5 +1,7 @@
 package main
 
+import "os"
+
 type PredArray []CFScore
 
 type CFScore struct {
@@ -8,10 +10,11 @@ type CFScore struct {
 	Loop  float64
 }
 
-type Helix struct {
+type ABHelixSheet struct {
 	StartIndex int
 	EndIndex   int
 	Score      float64
+	typeAB     string
 }
 
 type Turn struct {
@@ -22,4 +25,14 @@ type Turn struct {
 
 type Coordinate struct {
 	X, Y, Z float64
+}
+
+// Protein structure holds the protein data
+type Protein struct {
+	Sequence   string
+	Identifier string
+}
+
+type FASTAReader struct {
+	file *os.File
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/fogleman/gg"
+	//"github.com/fogleman/gg"
 )
 
 func main() {
@@ -32,7 +33,19 @@ func main() {
 	for itr, protein := range proteins {
 		ProteinPredArray[itr] = ChouFasman(protein, windowSize, parameters, aaIndexMap)
 		//fmt.Println("\n\n\nPrediction Array:", ProteinPredArray[itr])
-		fmt.Println("\n\nFound Helicies:", IdentifyHelicies(ProteinPredArray[itr]))
+
+		// predict helices
+		helices := IdentifyHelicies(ProteinPredArray[itr])
+
+		// predict beta sheets
+		betaSheets := IdentifyBetaSheet(ProteinPredArray[itr])
+
+		// reassign the helices and sheets as appropriate
+		reassignedABHelixSheet := AHelicalBSheetAssignment(append(helices, betaSheets...))
+
+		fmt.Println("\n\nFound Helicies:", helices)
+		fmt.Println("\n\nFound Beta Sheets:", betaSheets)
+		fmt.Println("\n\nFound after Reassignment:", reassignedABHelixSheet)
 		fmt.Println("\n\nFound Beta bends:, ", IdentifyTurns(protein, parameters, aaIndexMap))
 	}
 
