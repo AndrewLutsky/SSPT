@@ -25,8 +25,8 @@ func BetterChouFasmanWindow(window string, parameters [][]float64, aaIndexMap ma
 
 // IdentifyHelicies is a function that takes as its input a prediction array of CFScores and
 // returns an array of Helix objects identified from the sequence
-func IdentifyHelicies(predArray PredArray) []Helix {
-	helicies := make([]Helix, 0)
+func IdentifyHelicies(predArray PredArray) []ABHelixSheet {
+	helicies := make([]ABHelixSheet, 0)
 	n := len(predArray)
 	// scan through array until viable starting points are found
 	for i := 0; i < n; i++ { // can't range here, have to manually delcare so that we can enforce window skipping
@@ -49,10 +49,11 @@ func IdentifyHelicies(predArray PredArray) []Helix {
 				avgHelixScore := helixSum / float64(length)
 				avgSheetScore := sheetSum / float64(length)
 				if avgHelixScore > avgSheetScore { // We have a valid helix! Create the helix and add it to the array, then skip to the end of the helix.
-					var newHelix Helix
+					var newHelix ABHelixSheet
 					newHelix.StartIndex = i
 					newHelix.EndIndex = j
 					newHelix.Score = avgHelixScore
+					newHelix.typeAB = "helix"
 					helicies = append(helicies, newHelix)
 				}
 			}
