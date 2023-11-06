@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strconv"
+
+	"github.com/fogleman/gg"
 )
 
 // Hey! Jon here- I commented this out because it was conflicting with functions.go Feel free to uncomment while you're working.
@@ -290,4 +293,66 @@ func TestVisualization(protein Protein, predArray []CFScore) []int {
 		}
 	}
 	return aaSecStruct
+}
+
+// function to make a 2d plot for the prediction output
+func Make2DPlot(predSeq []int, output string) {
+	l := len(predSeq)
+	lineWidth := 5                            // width of the vertical lines in the figure
+	spaceBuffer := 50                         // to have buffer space on left and right
+	figWidth := 2*spaceBuffer + 2*lineWidth*l // keeping space between lines same as linewidth
+
+	// initialize the plot
+	dc := gg.NewContext(figWidth, 200)
+	// set the background color
+	dc.SetRGB255(255, 255, 255) // make the whole fig white initially
+	dc.Clear()
+
+	// set the font
+	dc.LoadFontFace("/Library/Fonts/Arial.ttf", 96)
+
+	// set the line width for all lines
+	dc.SetLineWidth(float64(lineWidth))
+
+	for index := range predSeq {
+		// value of xCoor, given the values of index, figWidth, buffer, lineWidth
+		xCoor := spaceBuffer + index*lineWidth*2
+
+		// draw one vertical line
+		MakeVerticalLine(predSeq, index, xCoor, spaceBuffer, dc)
+		// print every 10th line's coordinates (or the end coordinate)
+		if index == l-1 || index%10 == 0 {
+			dc.SetRGB255(0, 0, 0)
+			// subtracted linewidth from the xCoor to shift text slightly to left (better this way)
+			dc.DrawString(strconv.Itoa(index), float64(xCoor-lineWidth), float64(dc.Height())-float64(spaceBuffer)/2)
+		}
+	}
+
+	// print the legend:
+	dc.DrawString("helix is red, sheet is green, loop is blue", float64(spaceBuffer), float64(spaceBuffer)/2)
+
+	// save the plot
+	dc.SavePNG(output)
+}
+
+// function to make a vertical line for one amino acid in the prediction output of the appropriate
+// color according to the secondary structure
+func MakeVerticalLine(predSeq []int, index int, xCoor int, spaceBuffer int, dc *gg.Context) {
+	// set the color for the plot
+	if predSeq[index] == 1 {
+		// red for helix
+		dc.SetRGB255(255, 0, 0)
+	} else if predSeq[index] == 2 {
+		// green for sheet
+		dc.SetRGB255(0, 255, 0)
+	} else if predSeq[index] == 3 {
+		// blue for loop
+		dc.SetRGB255(0, 0, 255)
+	} else {
+		panic("bad prediction (not helix/sheet/loop)")
+	}
+
+	// draw the line
+	dc.DrawLine(float64(xCoor), float64(0+spaceBuffer), float64(xCoor), float64(dc.Height()-spaceBuffer))
+	dc.Stroke()
 }
