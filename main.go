@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/fogleman/gg"
 	//"github.com/fogleman/gg"
 )
 
@@ -51,19 +49,11 @@ func main() {
 
 	// Testing Visualization
 	aaSecStruct := TestVisualization(proteins[0], ProteinPredArray[0])
+	// call the visualization function (2D)
+	Make2DPlot(aaSecStruct, "2d_plots/2DPlot.png")
 	// call the visualization function
-	coordinates := Visualize(aaSecStruct, 0.9, 1.3)
+	// coordinates := Visualize(aaSecStruct, 0.9, 1.3)
 	// write the coordinates to a pdb file
-	err := WriteCoordinatesToPDB(coordinates, "pdb_files/testLessPitchMoreDist.pdb")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	//Create Graphics Context
-	dc := gg.NewContext(500, 500)
-	dc.DrawCircle(250, 250, 40)
-	dc.SetRGB(0, 0, 0)
-	dc.Fill()
-	dc.SavePNG("out.png")
+	// err := WriteCoordinatesToPDB(coordinates, "pdb_files/testLessPitchMoreDist.pdb")
 
 }
