@@ -20,7 +20,6 @@ func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 		aaIndexPlusTwo := aaIndexMap[rune(protein.Sequence[i+2])]
 		aaIndexPlusThree := aaIndexMap[rune(protein.Sequence[i+3])]
 		p_t := parameters[aaIndex][3] * parameters[aaIndexPlusOne][4] * parameters[aaIndexPlusTwo][5] * parameters[aaIndexPlusThree][6]
-
 		satisfiesCond1 := p_t > 0.000075
 
 		//Step 2 calculate the average of P(turn) for the tetrapeptide.
