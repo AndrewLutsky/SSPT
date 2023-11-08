@@ -49,7 +49,7 @@ func IdentifyBetaSheet(predArray PredArray) []ABHelixSheet {
 	// scan through array until viable starting points are found
 	for i := 0; i < n; i++ { // can't range here, have to manually delcare so that we can enforce window skipping
 		predPoint := predArray[i]
-		if predPoint.Sheet > 1.00 && i < n-3 { //Valid starting position (note to Jon, check if i < n - 3 is right)
+		if predPoint.Sheet > 1.05 && i < n-3 { //Valid starting position (note to Jon, check if i < n - 3 is right)
 			j := i
 			helixSum := predPoint.Helix // Start tracking for average
 			sheetSum := predPoint.Sheet
@@ -88,18 +88,20 @@ func AHelicalBSheetAssignment(allItems []ABHelixSheet) []ABHelixSheet {
 
 	// Loop through all items EXCEPT last one
 	for i := 0; i < len(allItems)-1; i++ {
+		element1 := allItems[i]
 		// Loop through all items starting from i + 1 to the very end
 		for j := i + 1; j < len(allItems); j++ {
+			element2 := allItems[j]
 			// checks to see if each ABHelixSheet is of a different type (helix or sheet)
-			if allItems[i].typeAB != allItems[j].typeAB {
+			if element1.typeAB != element2.typeAB {
 				// Determine if there is overlap between the two regions
 				// Note to group: Just make sure overlap looks right please
-				overlap := (allItems[i].EndIndex > allItems[j].StartIndex && allItems[i].EndIndex < allItems[j].EndIndex) || (allItems[j].EndIndex > allItems[i].StartIndex && allItems[j].EndIndex < allItems[i].EndIndex)
+				overlap := (element1.EndIndex > element2.StartIndex && element1.EndIndex < element2.EndIndex) || (element2.EndIndex > element1.StartIndex && element2.EndIndex < element1.EndIndex)
 
 				// in this case, there is overlap...
 				if overlap {
 					// If the score at position i is greater than at position j, mark j for deletion
-					if allItems[i].Score > allItems[j].Score {
+					if element1.Score > element2.Score {
 						toDelete = append(toDelete, j)
 					} else {
 						// If the score at position j is greater or equal, mark i for deletion
@@ -122,6 +124,7 @@ func AHelicalBSheetAssignment(allItems []ABHelixSheet) []ABHelixSheet {
 func DeleteItemsFromABHelixSheet(allItems []ABHelixSheet, toDelete []int) []ABHelixSheet {
 	var newItems []ABHelixSheet // Slice to hold the items not marked for deletion
 
+	// SUGGESTION: ADD "DELETEME" FIELD TO THE ITEMS, THEN JUST DELETE OBJECTS IN THE SLICE WITH THAT FLAG
 	// Loop through all items in the original slice
 	for i, item := range allItems {
 		delete := false

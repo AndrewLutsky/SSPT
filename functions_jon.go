@@ -29,37 +29,121 @@ func IdentifyHelicies(predArray PredArray) []ABHelixSheet {
 	helicies := make([]ABHelixSheet, 0)
 	n := len(predArray)
 	// scan through array until viable starting points are found
-	for i := 0; i < n; i++ { // can't range here, have to manually delcare so that we can enforce window skipping
-		predPoint := predArray[i]
-		if predPoint.Helix > 1.00 && i < n-4 { //Valid starting position
-			j := i
-			helixSum := predPoint.Helix // Start tracking for average
-			sheetSum := predPoint.Sheet
-			for j = i + 1; j < len(predArray); j++ { //Scan forward until stopping point is found or end of sequence is reached.
-				helixSum += predArray[j].Helix
-				sheetSum += predArray[j].Sheet
-				if predPoint.Helix < 1.00 { // End of the potential helix
-					break
-				}
+	for i := 0; i < n-5; i++ { // can't range here, have to manually delcare so that we can enforce window skipping
+		startPoint := i
+		endPoint := i + 5
+		predStartArray := predArray[startPoint:endPoint]
+		validHStart, _ := ValidStartingPosition(predStartArray, 4)
+
+		if validHStart { // Valid starting array
+			// Start extending backwards
+			backFlag := true
+			j := startPoint
+			for backFlag && j > 0 {
+				j -= 1
+				backArray := predArray[j : j+3]
+				backArrayHScore, _ := ArrayAverage(backArray)
+				backFlag = backArrayHScore >= 1.00
 			}
-			// At this point, we've either reached the end of the potential helix or hit the end of the sequence.
-			// Now, validate the potential helix.
-			length := j - i
-			if length > 5 { // long enough to be a helix, calculate avg scores
-				avgHelixScore := helixSum / float64(length)
-				avgSheetScore := sheetSum / float64(length)
-				if avgHelixScore > avgSheetScore { // We have a valid helix! Create the helix and add it to the array, then skip to the end of the helix.
-					var newHelix ABHelixSheet
-					newHelix.StartIndex = i
-					newHelix.EndIndex = j
-					newHelix.Score = avgHelixScore
-					newHelix.typeAB = "helix"
-					helicies = append(helicies, newHelix)
-				}
+			startPoint = j
+			// Start extending forwards
+			forFlag := true
+			k := endPoint
+			for forFlag && k < n-3 {
+				k += 1
+				forArray := predArray[k : k+3]
+				forArrayHScore, _ := ArrayAverage(forArray)
+				forFlag = forArrayHScore >= 1.00
 			}
-			i = j // ALWAYS jump the window once you have found a helix. Chou-Fasman says that you must also extend the search window backwards when calculating helicies
-			// so by always jumping the window we never have to consider this.
+			endPoint = k
 		}
+
+		avgHelixScore, avgSheetScore := ArrayAverage(predArray[startPoint:endPoint])
+		if avgHelixScore > avgSheetScore { // We have a valid helix! Create the helix and add it to the array, then skip to the end of the helix.
+			var newHelix ABHelixSheet
+			newHelix.StartIndex = startPoint
+			newHelix.EndIndex = endPoint
+			newHelix.Score = avgHelixScore
+			newHelix.typeAB = "helix"
+			helicies = append(helicies, newHelix)
+		}
+		i = endPoint
 	}
 	return helicies
+}
+
+// IdentifySheets2 is a function that takes as its input a prediction array of CFScores and
+// returns an array of Sheet objects identified from the sequence
+func IdentifySheets2(predArray PredArray) []ABHelixSheet {
+	sheets := make([]ABHelixSheet, 0)
+	n := len(predArray)
+	// scan through array until viable starting points are found
+	for i := 0; i < n-4; i++ { // can't range here, have to manually delcare so that we can enforce window skipping
+		startPoint := i
+		endPoint := i + 4
+		predStartArray := predArray[startPoint:endPoint]
+		_, validSStart := ValidStartingPosition(predStartArray, 3)
+
+		if validSStart { // Valid starting array
+			// Start extending backwards
+			backFlag := true
+			j := startPoint
+			for backFlag && j > 0 {
+				j -= 1
+				backArray := predArray[j : j+3]
+				_, backArraySScore := ArrayAverage(backArray)
+				backFlag = backArraySScore >= 1.00
+			}
+			startPoint = j
+			// Start extending forwards
+			forFlag := true
+			k := endPoint
+			for forFlag && k < n-3 {
+				k += 1
+				forArray := predArray[k : k+3]
+				_, forArraySScore := ArrayAverage(forArray)
+				forFlag = forArraySScore >= 1.00
+			}
+			endPoint = k
+		}
+
+		avgHelixScore, avgSheetScore := ArrayAverage(predArray[startPoint:endPoint])
+		if avgHelixScore > avgSheetScore && avgSheetScore > 1.05 { // We have a valid helix! Create the helix and add it to the array, then skip to the end of the helix.
+			var newSheet ABHelixSheet
+			newSheet.StartIndex = startPoint
+			newSheet.EndIndex = endPoint
+			newSheet.Score = avgSheetScore
+			newSheet.typeAB = "sheet"
+			sheets = append(sheets, newSheet)
+		}
+		i = endPoint
+	}
+	return sheets
+}
+
+// ArrayAverage takes in a PredArray subslice and returns the average helix and sheet scores, respectively.
+func ArrayAverage(a PredArray) (float64, float64) {
+	n := float64(len(a))
+	hscore := 0.0
+	sscore := 0.0
+	for _, item := range a {
+		hscore += item.Helix
+		sscore += item.Sheet
+	}
+	return hscore / n, sscore / n
+}
+
+// ValidStartingPosition takes in a PredArray subslice and an int of necessary hits numHits, and returns bools of if the slice has valid helix or sheet.
+func ValidStartingPosition(a PredArray, numHits int) (bool, bool) {
+	helixHits := 0
+	sheetHits := 0
+	for _, item := range a {
+		if item.Helix > 1.0 {
+			helixHits++
+		}
+		if item.Sheet > 1.0 {
+			sheetHits++
+		}
+	}
+	return helixHits >= numHits, sheetHits >= numHits
 }

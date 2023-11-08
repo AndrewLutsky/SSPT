@@ -36,7 +36,7 @@ func main() {
 		helices := IdentifyHelicies(ProteinPredArray[itr])
 
 		// predict beta sheets
-		betaSheets := IdentifyBetaSheet(ProteinPredArray[itr])
+		betaSheets := IdentifySheets2(ProteinPredArray[itr])
 
 		// reassign the helices and sheets as appropriate
 		reassignedABHelixSheet := AHelicalBSheetAssignment(append(helices, betaSheets...))
