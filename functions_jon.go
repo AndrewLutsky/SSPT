@@ -34,8 +34,10 @@ func IdentifyHelicies(predArray PredArray) []ABHelixSheet {
 		endPoint := i + 5
 		predStartArray := predArray[startPoint:endPoint]
 		validHStart, _ := ValidStartingPosition(predStartArray, 4)
+		//numHits, _ := NumHits(predStartArray, 4)
 
 		if validHStart { // Valid starting array
+			//fmt.Println("Found the starting array for a helix! NumHits:", numHits, "Start Point:", startPoint, "End Point:", endPoint, ". Extending backwards.")
 			// Start extending backwards
 			backFlag := true
 			j := startPoint
@@ -44,8 +46,10 @@ func IdentifyHelicies(predArray PredArray) []ABHelixSheet {
 				backArray := predArray[j : j+3]
 				backArrayHScore, _ := ArrayAverage(backArray)
 				backFlag = backArrayHScore >= 1.00
+				//fmt.Println("Searching backwards... j=", j, "backArrayHScore:", backArrayHScore)
 			}
 			startPoint = j
+			//fmt.Println("Found backmost point at", startPoint, "! Searching forwards.")
 			// Start extending forwards
 			forFlag := true
 			k := endPoint
@@ -54,8 +58,10 @@ func IdentifyHelicies(predArray PredArray) []ABHelixSheet {
 				forArray := predArray[k : k+3]
 				forArrayHScore, _ := ArrayAverage(forArray)
 				forFlag = forArrayHScore >= 1.00
+				//fmt.Println("Searching forwards... k=", k, "forArrayHScore:", forArrayHScore)
 			}
 			endPoint = k
+			//fmt.Println("Found foremost point at", endPoint, "!")
 		}
 
 		avgHelixScore, avgSheetScore := ArrayAverage(predArray[startPoint:endPoint])
@@ -146,4 +152,19 @@ func ValidStartingPosition(a PredArray, numHits int) (bool, bool) {
 		}
 	}
 	return helixHits >= numHits, sheetHits >= numHits
+}
+
+// ValidStartingPosition takes in a PredArray subslice and an int of necessary hits numHits, and returns bools of if the slice has valid helix or sheet.
+func NumHits(a PredArray, numHits int) (int, int) {
+	helixHits := 0
+	sheetHits := 0
+	for _, item := range a {
+		if item.Helix > 1.0 {
+			helixHits++
+		}
+		if item.Sheet > 1.0 {
+			sheetHits++
+		}
+	}
+	return helixHits, sheetHits
 }

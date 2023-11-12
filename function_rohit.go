@@ -84,20 +84,21 @@ func IdentifyBetaSheet(predArray PredArray) []ABHelixSheet {
 // AHelicalBSheetAssignment identifies overlapping regions of alpha-helices and beta-sheets,
 // and removes the region with the lower score.
 func AHelicalBSheetAssignment(allItems []ABHelixSheet) []ABHelixSheet {
+	//fmt.Println("All Items for Overlap Deletion:", allItems)
 	var toDelete []int // Slice to keep track of indices of items to be deleted
 
 	// Loop through all items EXCEPT last one
 	for i := 0; i < len(allItems)-1; i++ {
 		element1 := allItems[i]
 		// Loop through all items starting from i + 1 to the very end
-		for j := i + 1; j < len(allItems); j++ {
+		for j := 0; j < len(allItems); j++ {
 			element2 := allItems[j]
 			// checks to see if each ABHelixSheet is of a different type (helix or sheet)
-			if element1.typeAB != element2.typeAB {
+			if element1 != element2 {
 				// Determine if there is overlap between the two regions
 				// Note to group: Just make sure overlap looks right please
-				overlap := (element1.EndIndex > element2.StartIndex && element1.EndIndex < element2.EndIndex) || (element2.EndIndex > element1.StartIndex && element2.EndIndex < element1.EndIndex)
-
+				overlap := (element1.EndIndex >= element2.StartIndex && element1.EndIndex <= element2.EndIndex) || (element2.EndIndex >= element1.StartIndex && element2.EndIndex <= element1.EndIndex)
+				//fmt.Println("Comparing Elem1:\n", element1, "\nAnd Elem2:\n", element2, "\nIs there overlap?", overlap)
 				// in this case, there is overlap...
 				if overlap {
 					// If the score at position i is greater than at position j, mark j for deletion

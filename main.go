@@ -25,7 +25,7 @@ func main() {
 	reader.file.Close() // closing the file after calling the ReadProteins function
 
 	// windowsize initialised
-	windowSize := 4
+	windowSize := 1
 	// made a slice of slice of CFScore, for each protein in fasta file
 	ProteinPredArray := make([][]CFScore, len(proteins))
 	for itr, protein := range proteins {
@@ -34,15 +34,13 @@ func main() {
 
 		// predict helices
 		helices := IdentifyHelicies(ProteinPredArray[itr])
-
+		fmt.Println("\n\nFound Helicies:", helices)
 		// predict beta sheets
 		betaSheets := IdentifySheets2(ProteinPredArray[itr])
-
+		fmt.Println("\n\nFound Beta Sheets:", betaSheets)
 		// reassign the helices and sheets as appropriate
 		reassignedABHelixSheet := AHelicalBSheetAssignment(append(helices, betaSheets...))
 
-		fmt.Println("\n\nFound Helicies:", helices)
-		fmt.Println("\n\nFound Beta Sheets:", betaSheets)
 		fmt.Println("\n\nFound after Reassignment:", reassignedABHelixSheet)
 		fmt.Println("\n\nFound Beta bends:, ", IdentifyTurns(protein, parameters, aaIndexMap))
 	}
