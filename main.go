@@ -40,6 +40,7 @@ func main() {
 		fmt.Println("\n\nFound Beta Sheets:", betaSheets)
 		// reassign the helices and sheets as appropriate
 		reassignedABHelixSheet := AHelicalBSheetAssignment(append(helices, betaSheets...))
+		reassignedABHelixSheet = FillGapsInSequence(len(ProteinPredArray), reassignedABHelixSheet)
 
 		fmt.Println("\n\nFound after Reassignment:", reassignedABHelixSheet)
 		fmt.Println("\n\nFound Beta bends:, ", IdentifyTurns(protein, parameters, aaIndexMap))

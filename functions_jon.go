@@ -1,5 +1,7 @@
 package main
 
+import "sort"
+
 // BetterChouFasmanWindow takes a window sequence and returns a CFScore of each of the parameters
 func BetterChouFasmanWindow(window string, parameters [][]float64, aaIndexMap map[rune]int) CFScore {
 
@@ -167,4 +169,40 @@ func NumHits(a PredArray, numHits int) (int, int) {
 		}
 	}
 	return helixHits, sheetHits
+}
+
+func FillGapsInSequence(n int, sequence []ABHelixSheet) []ABHelixSheet {
+	// Sort the input slice based on StartIndex
+	sort.Slice(sequence, func(i, j int) bool {
+		return sequence[i].StartIndex < sequence[j].StartIndex
+	})
+
+	var result []ABHelixSheet
+
+	currentIndex := 0
+	for _, element := range sequence {
+		// Check for a gap before the current element
+		if element.StartIndex > currentIndex {
+			result = append(result, ABHelixSheet{
+				StartIndex: currentIndex,
+				EndIndex:   element.StartIndex - 1,
+				Score:      0,
+				typeAB:     "neither",
+			})
+		}
+		result = append(result, element)
+		currentIndex = element.EndIndex + 1
+	}
+
+	// Check for a gap at the end
+	if currentIndex < n {
+		result = append(result, ABHelixSheet{
+			StartIndex: currentIndex,
+			EndIndex:   n - 1,
+			Score:      0,
+			typeAB:     "neither",
+		})
+	}
+
+	return result
 }
