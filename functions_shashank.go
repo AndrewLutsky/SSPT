@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"math"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/fogleman/gg"
 )
@@ -295,6 +297,23 @@ func TestVisualization(protein Protein, predArray []CFScore) []int {
 	return aaSecStruct
 }
 
+// function to convert the reassignedABHelixSheet slice to aaSecStruct slice
+func ConvertABHelixSheetToAASecStruct(reassignedABHelixSheet []ABHelixSheet, aaSecStruct []int) []int {
+	// iterate over the reassignedABHelixSheet slice
+	for _, abHelixSheet := range reassignedABHelixSheet {
+		// iterate over the positions of the helix or sheet
+		for i := abHelixSheet.StartIndex; i <= abHelixSheet.EndIndex; i++ {
+			// assign the appropriate value to the aaSecStruct slice
+			if abHelixSheet.typeAB == "helix" {
+				aaSecStruct[i] = 1
+			} else if abHelixSheet.typeAB == "sheet" {
+				aaSecStruct[i] = 2
+			}
+		}
+	}
+	return aaSecStruct
+}
+
 // function to make a 2d plot for the prediction output
 func Make2DPlot(predSeq []int, output string) {
 	l := len(predSeq)
@@ -355,4 +374,110 @@ func MakeVerticalLine(predSeq []int, index int, xCoor int, spaceBuffer int, dc *
 	// draw the line
 	dc.DrawLine(float64(xCoor), float64(0+spaceBuffer), float64(xCoor), float64(dc.Height()-spaceBuffer))
 	dc.Stroke()
+}
+
+// 3D VISUALIZATION FUNCTIONS BELOW
+
+// function to make a 3D plot for the prediction output.
+// input is the input pdb file's name. output is the output html file's name
+func Make3DPlot(predSeq []int, inputPDB string, outputHTML string) {
+
+	// loop through the predSeq and assign values to colr, colg, colb according to its type
+	// and fill up the colors slice
+	colorInput := make([]string, 0)
+	for index := range predSeq {
+		var colr int
+		var colg int
+		var colb int
+		if predSeq[index] == 1 {
+			// red for helix
+			colr = 255
+			colg = 0
+			colb = 0
+		} else if predSeq[index] == 2 {
+			// green for sheet
+			colr = 0
+			colg = 255
+			colb = 0
+		} else if predSeq[index] == 3 {
+			// blue for loop
+			colr = 0
+			colg = 0
+			colb = 255
+		} else {
+			panic("bad prediction (not helix/sheet/loop)")
+		}
+		// append to the colorInput slice, something of the following type:
+		// {{start_residue_number: {}, end_residue_number: {}, color:{{r:{},g:{},b:{}}}}}
+		colorInput = append(colorInput, fmt.Sprintf("{start_residue_number: %d, end_residue_number: %d, color:{r:%d,g:%d,b:%d}}", index, index, colr, colg, colb))
+	}
+	// convert the colorInput slice to a string
+	result := "[" + strings.Join(colorInput, ", ") + "]"
+
+	// read the html file into a toEdit slice
+	toEdit := ReadFile("3d_visualization_resources/final_html_template.html")
+
+	// append the resultant color string to the toEdit slice (which is the raw html file)
+	toEdit[144] = result + "})}) \n"
+
+	// read the pdb file into a slice of strings
+	pdbFile := ReadFile(inputPDB)
+
+	// writing to a pdb file
+	line := 205 // where to begin writing pdb info within the html file
+
+	// Insert pdbArray elements into toEdit starting at line 205
+	for i := range pdbFile {
+		toEdit = append(toEdit[:line+i], append([]string{pdbFile[i]}, toEdit[line+i:]...)...)
+	}
+
+	// write the toEdit slice to a new html file
+	WriteToFile(outputHTML, toEdit)
+
+	// print success message
+	fmt.Println("Successfully created the html (3D-visualization) file")
+}
+
+// function to open a file named output, and write the contents of the toEdit slice to it
+func WriteToFile(output string, toEdit []string) {
+	// Open the file for writing
+	file, err := os.Create(output)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	defer file.Close()
+
+	// Write the contents of the toEdit slice to the file
+	for _, line := range toEdit {
+		fmt.Fprintln(file, line)
+	}
+}
+
+// function to take an input string, and read the whole file line by line and store in a slice of strings
+func ReadFile(input string) []string {
+	// Open the file for reading
+	file, err := os.Open(input)
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return nil
+	}
+	defer file.Close()
+
+	// Read the file line by line
+	var toEdit []string
+	scanner := bufio.NewScanner(file)
+	// increase the max token size to accomodate the long lines in the html file
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 4096*1024)
+	for scanner.Scan() {
+		toEdit = append(toEdit, scanner.Text())
+	}
+
+	// Check for errors during scanning
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error reading file:", err)
+		return nil
+	}
+	return toEdit
 }
