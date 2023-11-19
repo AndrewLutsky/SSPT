@@ -25,6 +25,7 @@ func BetterChouFasmanWindow(window string, parameters [][]float64, aaIndexMap ma
 
 // IdentifyHelicies is a function that takes as its input a prediction array of CFScores and
 // returns an array of Helix objects identified from the sequence
+
 func IdentifyHelicies(predArray PredArray) []ABHelixSheet {
 	helicies := make([]ABHelixSheet, 0)
 	n := len(predArray)
@@ -63,3 +64,81 @@ func IdentifyHelicies(predArray PredArray) []ABHelixSheet {
 	}
 	return helicies
 }
+
+// func IdentifyHelicies(predArray PredArray) []ABHelixSheet {
+// 	helicies := make([]ABHelixSheet, 0)
+// 	n := len(predArray)
+
+// 	averagePHelix := func(scores []CFScore) float64 {
+// 		sum := 0.0
+// 		for _, score := range scores {
+// 			sum += score.Helix
+// 		}
+// 		return sum / float64(len(scores))
+// 	}
+
+// 	averagePSheet := func(scores []CFScore) float64 {
+// 		sum := 0.0
+// 		for _, score := range scores {
+// 			sum += score.Sheet
+// 		}
+// 		return sum / float64(len(scores))
+// 	}
+
+// 	for i := 0; i <= n-6; i++ {
+// 		// Look for 4 out of 6 residues in the window having P(a-helix) > 1.00
+// 		count := 0
+// 		for j := i; j < i+6; j++ {
+// 			if predArray[j].Helix > 1.00 {
+// 				count++
+// 			}
+// 		}
+
+// 		if count >= 4 {
+// 			// Potential helix start found, now extend it
+// 			start := i
+// 			end := i + 5
+
+// 			// Extend forward
+// 			for {
+// 				if end+4 >= n { // Reached the end of array, stop extending
+// 					break
+// 				}
+// 				// Look at the next four residues to decide whether to extend
+// 				if averagePHelix(predArray[end+1:end+5]) < 1.00 {
+// 					break
+// 				}
+// 				end++
+// 			}
+
+// 			// Extend backward
+// 			for {
+// 				if start-1 < 0 { // Reached the beginning of array, stop extending
+// 					break
+// 				}
+// 				// Look at the previous four residues to decide whether to extend
+// 				if averagePHelix(predArray[start-4:start]) < 1.00 {
+// 					break
+// 				}
+// 				start--
+// 			}
+
+// 			// Calculate averages for the helix
+// 			avgHelixScore := averagePHelix(predArray[start : end+1])
+// 			avgSheetScore := averagePSheet(predArray[start : end+1])
+
+// 			// Check final criteria for assigning as helix
+// 			if (end-start) >= 5 && avgHelixScore > avgSheetScore {
+// 				helicies = append(helicies, ABHelixSheet{
+// 					StartIndex: start,
+// 					EndIndex:   end,
+// 					Score:      avgHelixScore,
+// 					typeAB:     "helix",
+// 				})
+// 				i = end // Jump the window to the end of the helix
+// 			}
+// 		}
+// 	}
+
+// 	return helicies
+// }
