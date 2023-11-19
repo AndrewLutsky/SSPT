@@ -33,6 +33,14 @@ type Protein struct {
 	Identifier string
 }
 
+type AminoAcid struct {
+	Identifier string
+}
+
 type FASTAReader struct {
+	file *os.File
+}
+
+type DNAReader struct {
 	file *os.File
 }

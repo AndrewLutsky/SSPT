@@ -14,17 +14,30 @@ func main() {
 	// Read the AAIndex file
 	aaIndexMap := ReadAAIndexMap("aa_index_map.txt")
 
+	// Determine input. Then either translate or read from FASTA.
+	fmt.Println("Reading from 'FASTA'? Or 'DNA'?")
+	var fileType string
+	fmt.Scanln(&fileType)
+	var proteins []Protein
 	// Read the fasta file
-	reader := GenerateFASTAReader("rcsb_pdb_1UBQ.fasta")
-	proteins := ReadProteins(reader)
-	reader.file.Close() // closing the file after calling the ReadProteins function
+	if fileType == "FASTA" {
+		reader := GenerateFASTAReader("rcsb_pdb_1UBQ.fasta")
+		proteins = ReadProteinsFASTA(reader)
+		reader.file.Close() // closing the file after calling the ReadProteins function
+	} else if fileType == "DNA" {
+		reader := GenerateDNAReader("dna.txt")
+		proteins = append(proteins, TranslateDNA(reader))
+		reader.file.Close() // closing the file after calling the ReadProteins function
+	} else {
+		panic("Incorrect reading source entered.")
+	}
 
 	// windowsize initialised
-	windowSize := 1
+	// windowSize := 0
 	// made a slice of slice of CFScore, for each protein in fasta file
 	ProteinPredArray := make([][]CFScore, len(proteins))
 	for itr, protein := range proteins {
-		ProteinPredArray[itr] = ChouFasman(protein, windowSize, parameters, aaIndexMap)
+		ProteinPredArray[itr] = ChouFasman(protein, parameters, aaIndexMap)
 		//fmt.Println("\n\n\nPrediction Array:", ProteinPredArray[itr])
 
 		// predict helices

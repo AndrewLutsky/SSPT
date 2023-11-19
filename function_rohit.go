@@ -22,7 +22,7 @@ func GenerateFASTAReader(fileName string) *FASTAReader {
 }
 
 // ReadProteins reads proteins from given FASTA file
-func ReadProteins(fastaReader *FASTAReader) []Protein {
+func ReadProteinsFASTA(fastaReader *FASTAReader) []Protein {
 	var proteins []Protein
 	var currProtein Protein
 	scanner := bufio.NewScanner(fastaReader.file)

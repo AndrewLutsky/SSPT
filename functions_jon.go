@@ -1,6 +1,13 @@
 package main
 
-import "sort"
+import (
+	"bufio"
+	"fmt"
+	"log"
+	"os"
+	"sort"
+	"strings"
+)
 
 // BetterChouFasmanWindow takes a window sequence and returns a CFScore of each of the parameters
 func BetterChouFasmanWindow(window string, parameters [][]float64, aaIndexMap map[rune]int) CFScore {
@@ -205,4 +212,109 @@ func FillGapsInSequence(n int, sequence []ABHelixSheet) []ABHelixSheet {
 	}
 
 	return result
+}
+
+func GenerateDNAReader(fileName string) *DNAReader {
+	file, err := os.Open(fileName)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	// (Shashank) below line needed to be commented out to make the file non empty. Else, the ReadProteins
+	// function will return an empty slice
+	// defer file.Close()
+	return &DNAReader{file: file}
+}
+
+// Translates DNA read from given DNA file into a slice of Protein. Checks 3 ORFs and returns the largest one.
+func TranslateDNA(dnaReader *DNAReader) Protein {
+	var allDNA []string
+	var potentialProteins []Protein
+	scanner := bufio.NewScanner(dnaReader.file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		allDNA = append(allDNA, line)
+	}
+	dnaString := strings.Join(allDNA, "")
+	fmt.Println("Imported DNA sequence as", dnaString)
+	rnaString := TranscribeDNA(dnaString)
+	fmt.Println("Transcribed DNA to RNA Sequench:", rnaString)
+	id := 0
+	for j := 0; j < 3; j++ {
+		var workingAcids []AminoAcid
+		for i := j; i < len(rnaString)-2; i += 3 {
+			codon := rnaString[i : i+3]
+			nextAcid := TranslateCodon(codon)
+			if nextAcid.Identifier != "*" {
+				workingAcids = append(workingAcids, nextAcid)
+			} else {
+				nextProtein := AcidsToProtein(workingAcids, id)
+				id++
+				potentialProteins = append(potentialProteins, nextProtein)
+				workingAcids = make([]AminoAcid, 0)
+			}
+		}
+	}
+	protein := potentialProteins[0]
+	n := len(potentialProteins[0].Sequence)
+	for _, newProtein := range potentialProteins {
+		if len(newProtein.Sequence) > n {
+			protein = newProtein
+			n = len(newProtein.Sequence)
+		}
+	}
+	fmt.Println("Translated sequence with longest ORF:", protein)
+	return protein
+}
+
+// TranscribeDNA transcribes a DNA string into RNA
+func TranscribeDNA(dnaString string) string {
+	rnaString := strings.Replace(dnaString, "T", "U", -1)
+	rnaString = strings.Replace(dnaString, "t", "u", -1)
+	return rnaString
+}
+
+// TranslateCodon translates a given codon into its corresponding protein
+func TranslateCodon(codon string) AminoAcid {
+	codon = strings.ToUpper(codon)
+	codonToAminoAcid := map[string]string{
+		"UUU": "F", "UUC": "F",
+		"UUA": "L", "UUG": "L", "CUU": "L", "CUC": "L", "CUA": "L", "CUG": "L",
+		"AUU": "I", "AUC": "I", "AUA": "I",
+		"AUG": "M",
+		"GUU": "V", "GUC": "V", "GUA": "V", "GUG": "V",
+		"UCU": "S", "UCC": "S", "UCA": "S", "UCG": "S",
+		"CCU": "P", "CCC": "P", "CCA": "P", "CCG": "P",
+		"ACU": "T", "ACC": "T", "ACA": "T", "ACG": "T",
+		"GCU": "A", "GCC": "A", "GCA": "A", "GCG": "A",
+		"UAU": "Y", "UAC": "Y",
+		"UAA": "*", "UAG": "*", "UGA": "*",
+		"CAU": "H", "CAC": "H",
+		"CAA": "Q", "CAG": "Q",
+		"AAU": "N", "AAC": "N",
+		"AAA": "K", "AAG": "K",
+		"GAU": "D", "GAC": "D",
+		"GAA": "E", "GAG": "E",
+		"UGU": "C", "UGC": "C",
+		"UGG": "W",
+		"CGU": "R", "CGC": "R", "CGA": "R", "CGG": "R", "AGA": "R", "AGG": "R",
+		"AGU": "S", "AGC": "S",
+		"GGU": "G", "GGC": "G", "GGA": "G", "GGG": "G",
+	}
+
+	aminoAcid, exists := codonToAminoAcid[codon]
+	if !exists {
+		return AminoAcid{"unknown"}
+	}
+
+	return AminoAcid{Identifier: aminoAcid}
+}
+
+func AcidsToProtein(acids []AminoAcid, id int) Protein {
+	var acidStrings []string
+	for _, acid := range acids {
+		acidStrings = append(acidStrings, acid.Identifier)
+	}
+	aaString := strings.Join(acidStrings, "")
+	return Protein{Identifier: string(id), Sequence: aaString}
 }
