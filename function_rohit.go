@@ -32,17 +32,19 @@ func ReadProteinsFASTA(fastaReader *FASTAReader) []Protein {
 			if currProtein.Identifier != "" {
 				proteins = append(proteins, currProtein)
 				currProtein = Protein{}
+			} else {
+				currProtein.Identifier = strings.TrimPrefix(line, ">")
 			}
-			currProtein.Identifier = strings.TrimPrefix(line, ">")
 		} else if line != "" {
 			currProtein.Sequence += line
+		} else if line == "" {
+			proteins = append(proteins, currProtein)
+			currProtein = Protein{}
 		}
 	}
 
-	/*// Add the last protein after the loop finishes
-	if currProtein.Identifier != "" {
-		proteins = append(proteins, currProtein)
-	} */
+	proteins = append(proteins, currProtein)
+	currProtein = Protein{}
 
 	return proteins
 }
