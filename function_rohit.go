@@ -39,10 +39,10 @@ func ReadProteinsFASTA(fastaReader *FASTAReader) []Protein {
 		}
 	}
 
-	// Add the last protein after the loop finishes
+	/*// Add the last protein after the loop finishes
 	if currProtein.Identifier != "" {
 		proteins = append(proteins, currProtein)
-	}
+	} */
 
 	return proteins
 }
