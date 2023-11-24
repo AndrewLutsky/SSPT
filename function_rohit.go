@@ -4,12 +4,13 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strings"
 )
 
-func GenerateFASTAReader(fileName string) *FASTAReader {
+func GenerateFASTAReader(fileName string) FASTAReader {
 	file, err := os.Open(fileName)
 	if err != nil {
 		log.Panic(err)
@@ -18,11 +19,11 @@ func GenerateFASTAReader(fileName string) *FASTAReader {
 	// (Shashank) below line needed to be commented out to make the file non empty. Else, the ReadProteins
 	// function will return an empty slice
 	// defer file.Close()
-	return &FASTAReader{file: file}
+	return FASTAReader{file: file}
 }
 
 // ReadProteins reads proteins from given FASTA file
-func ReadProteinsFASTA(fastaReader *FASTAReader) []Protein {
+func ReadProteinsFASTA(fastaReader FASTAReader) []Protein {
 	var proteins []Protein
 	var currProtein Protein
 	scanner := bufio.NewScanner(fastaReader.file)
@@ -32,9 +33,9 @@ func ReadProteinsFASTA(fastaReader *FASTAReader) []Protein {
 			if currProtein.Identifier != "" {
 				proteins = append(proteins, currProtein)
 				currProtein = Protein{}
-			} else {
-				currProtein.Identifier = strings.TrimPrefix(line, ">")
 			}
+			currProtein.Identifier = strings.TrimPrefix(line, ">")
+
 		} else if line != "" {
 			currProtein.Sequence += line
 		} else if line == "" {
@@ -47,6 +48,78 @@ func ReadProteinsFASTA(fastaReader *FASTAReader) []Protein {
 	currProtein = Protein{}
 
 	return proteins
+}
+
+func GenerateCIFReader(fileName string) *CIFReader {
+	file, err := os.Open(fileName)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	// (Shashank) below line needed to be commented out to make the file non empty. Else, the ReadProteins
+	// function will return an empty slice
+	// defer file.Close()
+	return &CIFReader{file: file}
+}
+
+// ReadCIFToFasta reads protein sequences from a CIF file and writes them to a FASTA format.
+func ReadCIFToFasta(cifReader *CIFReader) (Protein, error) {
+	// Define the identifier to look for in the CIF file.
+	identifier := "_entity_poly.pdbx_seq_one_letter_code"
+
+	protein := Protein{}
+
+	// Create a scanner to read the file line by line.
+	scanner := bufio.NewScanner(cifReader.file)
+
+	// Flags to keep track of whether the sequence has been foundand whether we've encountered the second semicolon.
+	sequenceFound := false
+	secondSemicolon := false
+
+	// Variable to store the extracted sequence.
+	var sequence string
+
+	// Loop over each line in the file.
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Parse the protein entry id into the protein
+		if strings.Contains(line, "_entry.id") {
+			parsedString := strings.TrimPrefix(line, "_entry.id")
+			parsedString = strings.TrimSpace(parsedString)
+			protein.Identifier = parsedString
+		}
+
+		// Check if the line contains the identifier.
+		// If it does, start capturing the sequence.
+		if strings.Contains(line, identifier) {
+			sequenceFound = true
+		}
+
+		// If we've found the sequence start and not yet encountered the second semicolon,
+		// trim any leading semicolon and append the line to the sequence.
+		if strings.HasPrefix(line, ";") && sequenceFound && !secondSemicolon {
+			parsedString := strings.TrimPrefix(line, ";")
+			sequence += strings.TrimSpace(parsedString)
+		}
+
+		// If we encounter a semicolon and have already started capturing the sequence,
+		// set the flag indicating that we've reached the end of the sequence.
+		if strings.HasPrefix(line, ";") && sequence != "" {
+			secondSemicolon = true
+		}
+	}
+
+	// Put sequence into protein
+	protein.Sequence = sequence
+
+	// Check for any errors that occurred during the file reading.
+	if err := scanner.Err(); err != nil {
+		return Protein{}, err
+	}
+
+	// Return the protein which will have an identifier and a protein.
+	return protein, nil
 }
 
 // IdentifyBetaSheet is a function that takes as its input a prediction array of CFScores and
@@ -150,4 +223,17 @@ func DeleteItemsFromABHelixSheet(allItems []ABHelixSheet, toDelete []int) []ABHe
 		}
 	}
 	return newItems
+}
+
+// function to open a file named output, and write the contents of the toEdit slice to it
+func WriteToFileString(output string, toEdit string) {
+	// Open the file for writing
+	file, err := os.Create(output)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	// Write the contents of the toEdit slice to the file
+	fmt.Fprintln(file, toEdit)
 }
