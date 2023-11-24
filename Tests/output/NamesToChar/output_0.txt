@@ -1,0 +1,1 @@
+map[Alanine:A Arginine:R Asparagine:N Aspartic Acid:D Cysteine:C Glutamic Acid:E Glutamine:Q Glycine:G Histidine:H Isoleucine:I Leucine:L Lysine:K Methionine:M Phenylalanine:P Proline:P Serine:S Threonine:T Tryptophan:W Tyrosine:Y Valine:V]
