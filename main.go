@@ -7,7 +7,8 @@ import (
 )
 
 func main() {
-
+	/*cifReader := GenerateCIFReader("cif_files/1fez.cif")
+	test, _ := ReadCIFToFasta(cifReader) */
 	// Read the parameters file
 	parameters := ReadParameters("CFparameters.txt")
 
@@ -21,7 +22,8 @@ func main() {
 	var proteins []Protein
 	// Read the fasta file
 	if fileType == "FASTA" {
-		reader := GenerateFASTAReader("rcsb_pdb_1UBQ.fasta")
+		//reader := GenerateFASTAReader("rcsb_pdb_1UBQ.fasta")
+		reader := GenerateFASTAReader("/Users/rohitnandakumar/go/src/SSPT/Tests/input/ReadProteinsFASTA/input_2.txt")
 		proteins = ReadProteinsFASTA(reader)
 		reader.file.Close() // closing the file after calling the ReadProteins function
 	} else if fileType == "DNA" {
@@ -38,7 +40,7 @@ func main() {
 	ProteinPredArray := make([][]CFScore, len(proteins))
 	for itr, protein := range proteins {
 		ProteinPredArray[itr] = ChouFasman(protein, parameters, aaIndexMap)
-		//fmt.Println("\n\n\nPrediction Array:", ProteinPredArray[itr])
+		fmt.Println(protein, parameters, aaIndexMap)
 
 		// predict helices
 		helices := IdentifyHelicies(ProteinPredArray[itr])
@@ -73,5 +75,4 @@ func main() {
 		// 3D VISUALIZATION
 		Make3DPlot(aaSecStruct, "3d_visualization_resources/1ubq.pdb", "outputs/3d_htmls/1ubq.html")
 	}
-
 }

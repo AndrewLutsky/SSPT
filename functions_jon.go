@@ -316,5 +316,5 @@ func AcidsToProtein(acids []AminoAcid, id int) Protein {
 		acidStrings = append(acidStrings, acid.Identifier)
 	}
 	aaString := strings.Join(acidStrings, "")
-	return Protein{Identifier: string(id), Sequence: aaString}
+	return Protein{Identifier: fmt.Sprint(id), Sequence: aaString}
 }
