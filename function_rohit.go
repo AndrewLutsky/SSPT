@@ -29,20 +29,20 @@ func ReadProteinsFASTA(fastaReader *FASTAReader) []Protein {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, ">") {
-			if currProtein.Identifier != "" {
-				proteins = append(proteins, currProtein)
-				currProtein = Protein{}
-			}
+			// case when line is protein identifier
 			currProtein.Identifier = strings.TrimPrefix(line, ">")
 		} else if line != "" {
+			// case when line is not protein identifier and not empty, meaning it has the sequence
 			currProtein.Sequence += line
+		} else {
+			// case when line has nothing
+			proteins = append(proteins, currProtein)
+			currProtein = Protein{}
 		}
 	}
 
-	/*// Add the last protein after the loop finishes
-	if currProtein.Identifier != "" {
-		proteins = append(proteins, currProtein)
-	} */
+	// Add the last protein after the loop finishes
+	proteins = append(proteins, currProtein)
 
 	return proteins
 }
