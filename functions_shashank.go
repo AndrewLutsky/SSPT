@@ -3,8 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -352,6 +355,9 @@ func Make2DPlot(predSeq []int, output string) {
 
 	// save the plot
 	dc.SavePNG(output)
+
+	// print success message
+	fmt.Println("Successfully created the png (2D-visualization) file/s")
 }
 
 // function to make a vertical line for one amino acid in the prediction output of the appropriate
@@ -480,4 +486,168 @@ func ReadFile(input string) []string {
 		return nil
 	}
 	return toEdit
+}
+
+// MakeEnsemblArray is a function that takes as its input a string of Ensembl IDs separated by spaces
+// and returns a slice of strings containing the Ensembl IDs
+func MakeEnsemblArray(ensemblInput string) []string {
+	// split the input string into a slice of strings
+	ensemblIDs := strings.Split(ensemblInput, ",")
+	return ensemblIDs
+}
+
+// EnsemblToProteinSlice is a function that takes as its input a slice of strings containing Ensembl IDs
+// and returns a slice of Protein objects
+func EnsemblToProteinSlice(ensemblIDs []string) []Protein {
+	// make a slice of proteins
+	proteins := make([]Protein, 0)
+	// iterate over the ensembl IDs
+	for _, ensemblID := range ensemblIDs {
+		// make a protein object using the ensembl ID
+		proteins = append(proteins, EnsemblToProtein(ensemblID))
+	}
+	return proteins
+}
+
+// EnsemblToProtein is a function that takes as its input a string containing an Ensembl ID
+// and returns a Protein object
+func EnsemblToProtein(ensemblID string) Protein {
+	// make a protein object
+	var protein Protein
+	// assign the ensembl ID to the protein object
+	protein.Identifier = ensemblID
+	protein.Sequence = EnsemblToSequence(ensemblID)
+	// return the protein object
+	return protein
+}
+
+// EnsemblToSequence is a function that takes as its input a string containing an Ensembl ID
+// and returns a string containing the sequence of the protein
+func EnsemblToSequence(ensemblID string) string {
+	// in the console, run gget command with the translate flag as true
+	// this command basically: gget seq --translate ENSG00000130234 > ensemblID.fasta
+	// this will give you the sequence of the protein in the console, we need to save it in a file named ensemblID.fasta
+	cmd := exec.Command("gget", "seq", "--translate", ensemblID)
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	err = os.WriteFile("outputs/fastas/"+ensemblID+".fasta", output, 0644)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// make a reader for the file
+	reader := GenerateFASTAReader("outputs/fastas/" + ensemblID + ".fasta")
+	// read the protein sequence from the reader
+	sequence := ReadProteinsFASTA(reader)
+
+	// return the sequence of the first protein in the slice
+	return sequence[0].Sequence
+}
+
+// EnsemblToUniprotSlice is a function that takes as its input a slice of strings containing Ensembl IDs
+// and returns a slice of strings containing Uniprot IDs
+func EnsemblToUniprotSlice(ensemblIDs []string) []string {
+	// make a slice of strings
+	uniprotIDs := make([]string, 0)
+	// iterate over the ensembl IDs
+	for _, ensemblID := range ensemblIDs {
+		// make a uniprot ID using the ensembl ID
+		uniprotIDs = append(uniprotIDs, EnsemblToUniprot(ensemblID))
+	}
+	return uniprotIDs
+}
+
+// EnsemblToUniprot is a function that takes as its input a string containing an Ensembl ID
+// and returns a string containing a Uniprot ID
+func EnsemblToUniprot(ensemblID string) string {
+	// a file named ensemblID.fasta will already be present in the directory
+	// make a reader for the file
+	reader := GenerateFASTAReader("outputs/fastas/" + ensemblID + ".fasta")
+	// make a scanner for the reader
+	scanner := bufio.NewScanner(reader.file)
+	// scan the first line of the file
+	scanner.Scan()
+	// split the first line into a slice of strings, separated by spaces
+	firstLine := strings.Split(scanner.Text(), " ")
+	// the uniprot ID is the string, between "uniprot_id: " and " ensembl_id"
+	// extract the uniprot ID from the first line, which looks like:
+	// >ENST00000252519 uniprot_id: Q9BYF1 ensembl_id: ENST00000252519 gene_name: ACE2 organism: Homo sapiens sequence_length: 805
+	uniprotID := firstLine[2]
+	// return the uniprot ID
+	fmt.Println("uniprot for ensembl: " + ensemblID + " is: " + uniprotID)
+	return uniprotID
+}
+
+// MakeOutputNames is a function that takes as its input a slice of Protein objects
+// and returns a slice of strings containing strings of the form Protein_1, Protein_2, etc.
+func MakeOutputNames(proteins []Protein) []string {
+	// make a slice of strings
+	outputNames := make([]string, 0)
+	// iterate over the proteins
+	for i := range proteins {
+		// make a string of the form Protein_1, Protein_2, etc.
+		outputNames = append(outputNames, "Protein_"+strconv.Itoa(i+1))
+	}
+	return outputNames
+}
+
+// DownloadPDBFiles is a function that takes as its input a slice of strings containing Uniprot IDs
+// and downloads the PDB files for the proteins in the 3d_visualization_resources folder with the same name
+func DownloadPDBFiles(uniprotIDs []string) {
+	// iterate over the uniprot IDs
+	for _, uniprotID := range uniprotIDs {
+		// download the PDB file for the uniprot ID
+		DownloadPDBFile(uniprotID)
+	}
+}
+
+// DownloadPDBFile is a function that takes as its input a string containing a Uniprot ID
+// and downloads the PDB file for the protein in the 3d_visualization_resources folder with the same name
+func DownloadPDBFile(uniprotID string) {
+	// make a string containing the URL for the PDB file
+	// The format of URL: https://alphafold.ebi.ac.uk/files/AF- + uniprot_ID + -F1-model_v4.pdb
+
+	url := "https://alphafold.ebi.ac.uk/files/AF-" + uniprotID + "-F1-model_v4.pdb"
+	// download the PDB file from the URL
+	DownloadFile("3d_visualization_resources/"+uniprotID+".pdb", url)
+}
+
+// DownloadFile is a function that takes as its input a string containing the name of the file to be downloaded
+// and a string containing the URL of the file to be downloaded
+func DownloadFile(filepath string, url string) {
+	// make a HTTP request to the URL
+	resp, err := http.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	// create the file
+	out, err := os.Create(filepath)
+	if err != nil {
+		panic(err)
+	}
+	defer out.Close()
+
+	// write the body of the HTTP request to the file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// MakeDNAOutputNames is a function that takes as its input a slice of Protein objects
+// and returns a slice of strings containing strings of the form DNA_1, DNA_2, etc.
+func MakeDNAOutputNames(proteins []Protein) []string {
+	// make a slice of strings
+	outputNames := make([]string, 0)
+	// iterate over the proteins
+	for i := range proteins {
+		// make a string of the form DNA_1, DNA_2, etc.
+		outputNames = append(outputNames, "DNA_"+strconv.Itoa(i+1))
+	}
+	return outputNames
 }
