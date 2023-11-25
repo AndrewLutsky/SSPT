@@ -41,6 +41,10 @@ type FASTAReader struct {
 	file *os.File
 }
 
+type CIFReader struct {
+	file *os.File
+}
+
 type DNAReader struct {
 	file *os.File
 }

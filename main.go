@@ -5,7 +5,8 @@ import (
 )
 
 func main() {
-
+	/*cifReader := GenerateCIFReader("cif_files/1fez.cif")
+	test, _ := ReadCIFToFasta(cifReader) */
 	// Read the parameters file
 	parameters := ReadParameters("CFparameters.txt")
 
@@ -76,7 +77,7 @@ func main() {
 	ProteinPredArray := make([][]CFScore, len(proteins))
 	for itr, protein := range proteins {
 		ProteinPredArray[itr] = ChouFasman(protein, parameters, aaIndexMap)
-		//fmt.Println("\n\n\nPrediction Array:", ProteinPredArray[itr])
+		fmt.Println(protein, parameters, aaIndexMap)
 
 		// predict helices
 		helices := IdentifyHelicies(ProteinPredArray[itr])

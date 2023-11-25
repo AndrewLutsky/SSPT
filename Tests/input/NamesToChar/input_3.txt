@@ -1,0 +1,20 @@
+Aspartic Acid,asp,D
+Phenylalanine,phe,P
+Glutamic Acid,glu,E
+Asparagine,asn,N
+Isoleucine,ile,I
+Glycine,gly,G
+Cysteine,cys,C
+Leucine,leu,L
+Alanine,ala,A
+Proline,pro,P
+Threonine,thr,T
+Arginine,arg,R
+Tryptophan,trp,W
+Tyrosine,tyr,Y
+Methionine,met,M
+Lysine,lys,K
+Histidine,his,H
+Valine,val,V
+Serine,ser,S
+Glutamine,gln,Q
