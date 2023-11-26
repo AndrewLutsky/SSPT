@@ -441,7 +441,7 @@ func Make3DPlot(predSeq []int, inputPDB string, outputHTML string) {
 	WriteToFile(outputHTML, toEdit)
 
 	// print success message
-	fmt.Println("Successfully created the html (3D-visualization) file")
+	fmt.Println("Successfully created the html (3D-visualization) file/s")
 }
 
 // function to open a file named output, and write the contents of the toEdit slice to it

@@ -50,6 +50,18 @@ ENST00000546271.1
 ```
 - The ouputs will appear in the `outputs` directory. The 3d visualization is supported only in `array` mode. The 2d visualization is supported in all modes.
 
+# Example Outputs
+
+On Ubiquitin, the program outputs the following 2D visualization:
+
+<img src="./miscellaneous/2d_visualization_for_readme.png" alt="2D" width="700"/>
+
+and the following 3D visualization:
+
+<img src="./miscellaneous/3d_visualization_for_readme.png" alt="3D" width="700"/>
+
+<br>
+
 # Authors:
 - Jon Potter
 - Shashank Katiyar
