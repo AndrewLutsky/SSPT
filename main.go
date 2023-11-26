@@ -62,7 +62,13 @@ func main() {
 		outputNames = MakeOutputNames(proteins)
 
 	} else if fileType == "DNA" {
-		reader := GenerateDNAReader("dna.txt")
+		// ask the user to enter the name of the DNA file
+		fmt.Println("Enter the name of the DNA file:")
+		var dnaInput string
+		fmt.Scanln(&dnaInput)
+
+		// make a slice of proteins using the dna file
+		reader := GenerateDNAReader(dnaInput)
 		proteins = append(proteins, TranslateDNA(reader))
 		reader.file.Close() // closing the file after calling the ReadProteins function
 
