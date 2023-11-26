@@ -75,6 +75,7 @@ func main() {
 
 	// made a slice of slice of CFScore, for each protein in fasta file
 	ProteinPredArray := make([][]CFScore, len(proteins))
+	//ProteinPredGorArray := make([][]CFScore, len(proteins))
 	for itr, protein := range proteins {
 		ProteinPredArray[itr] = ChouFasman(protein, parameters, aaIndexMap)
 		fmt.Println(protein, parameters, aaIndexMap)
@@ -90,7 +91,8 @@ func main() {
 		reassignedABHelixSheet = FillGapsInSequence(len(ProteinPredArray), reassignedABHelixSheet)
 
 		fmt.Println("\n\nFound after Reassignment:", reassignedABHelixSheet)
-		fmt.Println("\n\nFound Beta bends:, ", IdentifyTurns(protein, parameters, aaIndexMap))
+		reassignedABHelixSheet = IdentifyTurns(protein, parameters, aaIndexMap, reassignedABHelixSheet)
+		fmt.Println("Completed secondary structure assignment using CF!")
 
 		// VISUALIZATION CODE BELOW
 
@@ -118,4 +120,23 @@ func main() {
 
 		}
 	}
+	/*
+		for itr, protein := range proteins {
+			ProteinPredGorArray[itr] = GORPrediction(protein, parameters, aaIndexMap)
+			fmt.Println(protein, parameters, aaIndexMap)
+			// predict helices
+			helices := IdentifyHelicies(ProteinPredArray[itr])
+			fmt.Println("\n\nFound Helicies:", helices)
+			// predict beta sheets
+			betaSheets := IdentifySheets2(ProteinPredArray[itr])
+			fmt.Println("\n\nFound Beta Sheets:", betaSheets)
+			// reassign the helices and sheets as appropriate
+			reassignedABHelixSheet := AHelicalBSheetAssignment(append(helices, betaSheets...))
+			reassignedABHelixSheet = FillGapsInSequence(len(ProteinPredArray), reassignedABHelixSheet)
+			fmt.Println("\n\nFound after Reassignment:", reassignedABHelixSheet)
+			reassignedABHelixSheet = IdentifyTurns(protein, parameters, aaIndexMap, reassignedABHelixSheet)
+			fmt.Println("Completed secondary structure assignment using CF!")
+
+		}
+	*/
 }
