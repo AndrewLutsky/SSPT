@@ -23,6 +23,7 @@ func GORPrediction(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 		}
 
 		// Loop through the window
+		//Probably needs to be fixed
 		for j := windowStart; j <= windowEnd; j++ {
 			aaIndex := aaIndexMap[rune(sequence[j])]
 			scoreHelix += parameters[aaIndex][0]
@@ -41,4 +42,38 @@ func GORPrediction(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 	}
 
 	return prediction
+}
+
+func GorPredictionConv(predArr PredArray) []ABHelixSheet {
+	ssStruc := make([]ABHelixSheet, 0)
+	//intermediateArr := ConvertPredToArr(predArr)
+
+	return ssStruc
+}
+
+func ConvertPredToArr(predArr PredArray) []int {
+	ssStruc := make([]int, len(predArr))
+	for i := range predArr {
+		ssValues := make([]float64, 4)
+		ssValues[0] = predArr[i].Helix
+		ssValues[1] = predArr[i].Sheet
+		ssValues[2] = predArr[i].Loop
+		ind := max(ssValues)
+		ssStruc[i] = ind
+	}
+
+	return ssStruc
+}
+
+func max(vals []float64) int {
+	max := vals[0]
+	index := 0
+	for i, val := range vals {
+		if val > max {
+			max = val
+			index = i
+		}
+	}
+
+	return index
 }
