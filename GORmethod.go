@@ -44,9 +44,9 @@ func GORPrediction(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 	return prediction
 }
 
-func GorPredictionConv(predArr PredArray) []ABHelixSheet {
+func GorPredictionConv(intermediateArray []int) []ABHelixSheet {
 	ssStruc := make([]ABHelixSheet, 0)
-	intermediateArray := ConvertPredToArr(predArr)
+	//intermediateArray := ConvertPredToArr(predArr)
 	lastNum := intermediateArray[0]
 	currentSecStruc := new(ABHelixSheet)
 	currentSecStruc.typeAB = ConvertIntToType(intermediateArray[0])
@@ -59,6 +59,7 @@ func GorPredictionConv(predArr PredArray) []ABHelixSheet {
 			ssStruc = append(ssStruc, *currentSecStruc)
 			newSecStruc := new(ABHelixSheet)
 			newSecStruc.StartIndex = i
+			newSecStruc.EndIndex = i
 			newSecStruc.typeAB = ConvertIntToType(intermediateArray[i])
 			currentSecStruc = newSecStruc
 		} else {
