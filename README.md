@@ -28,7 +28,7 @@ pip install --upgrade gget
 ```
 git clone https://github.com/AndrewLutsky/SSPT.git
 ```
-- Also, the go graphics package must be installed for the 2D visualization to work. Go the cloned repository's directory and run:
+- Also, the go graphics package must be installed for the 2D visualization to work. Go to the cloned repository's directory and run:
 ```
 go get -u github.com/fogleman/gg
 ```
