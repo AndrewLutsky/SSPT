@@ -28,6 +28,10 @@ pip install --upgrade gget
 ```
 git clone https://github.com/AndrewLutsky/SSPT.git
 ```
+- Also, the go graphics package must be installed for the 2D visualization to work. Go the cloned repository's directory and run:
+```
+go get -u github.com/fogleman/gg
+```
 - To build the executable file for the program, run:
 ```
 go build
@@ -59,8 +63,6 @@ On Ubiquitin, the program outputs the following 2D visualization:
 and the following 3D visualization:
 
 <img src="./miscellaneous/3d_visualization_for_readme.png" alt="3D" width="700"/>
-
-<br>
 
 # Authors:
 - Jon Potter
