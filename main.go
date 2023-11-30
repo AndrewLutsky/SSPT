@@ -7,6 +7,9 @@ import (
 func main() {
 	/*cifReader := GenerateCIFReader("cif_files/1fez.cif")
 	test, _ := ReadCIFToFasta(cifReader) */
+
+	//fmt.Println(GORMethodInput("GorParams/alpha_helix.txt"))
+
 	// Read the parameters file
 	parameters := ReadParameters("CFparameters.txt")
 

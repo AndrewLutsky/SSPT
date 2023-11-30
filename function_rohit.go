@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -234,4 +235,43 @@ func WriteToFileString(output string, toEdit string) {
 
 	// Write the contents of the toEdit slice to the file
 	fmt.Fprintln(file, toEdit)
+}
+
+// This functtion takes in the inputs from the GorParams folder
+func GORMethodInput(file string) [][]float64 {
+	f, err := os.Open(file)
+	if err != nil {
+		log.Panicf("Cannot open file: %s", err)
+	}
+
+	scanner := bufio.NewScanner(f)
+	scanner.Scan() // Skip the header line with indices
+
+	// initialize 2d matrix
+	var matrix [][]float64
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+
+		// skip lines that do not contain numeric values
+		if len(fields) <= 1 || strings.HasPrefix(line, "X") {
+			continue
+		}
+		var row []float64
+		// first field is row label, so skip
+		for _, field := range fields[1:] {
+			value, err := strconv.ParseFloat(field, 64)
+			if err != nil {
+				log.Panicf("failed to parse float: %s", err)
+			}
+			// append value to row
+			row = append(row, value)
+		}
+		// append row to matrix
+		matrix = append(matrix, row)
+	}
+
+	defer f.Close()
+
+	return matrix
 }
