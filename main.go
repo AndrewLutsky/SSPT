@@ -142,21 +142,31 @@ func main() {
 
 		ProteinPredGorArray[itr] = GORPrediction(protein, params, aaIndexMap)
 		ssStruc := GorPredictionConv(ConvertPredToArr(ProteinPredGorArray[itr]))
-		fmt.Println(ssStruc)
-		// predict helices
-		/*
-			helices := IdentifyHelicies(ProteinPredArray[itr])
-			fmt.Println("\n\nFound Helicies:", helices)
-			// predict beta sheets
-			betaSheets := IdentifySheets2(ProteinPredArray[itr])
-			fmt.Println("\n\nFound Beta Sheets:", betaSheets)
-			// reassign the helices and sheets as appropriate
-			reassignedABHelixSheet := AHelicalBSheetAssignment(append(helices, betaSheets...))
-			reassignedABHelixSheet = FillGapsInSequence(len(ProteinPredArray), reassignedABHelixSheet)
-			fmt.Println("\n\nFound after Reassignment:", reassignedABHelixSheet)
-			reassignedABHelixSheet = IdentifyTurns(protein, parameters, aaIndexMap, reassignedABHelixSheet)
-		*/
+
 		fmt.Println("Completed secondary structure assignment using CF!")
 
+		// make int slice, which would store the information about the secondary structure of each position
+		// (1 = helix, 2 = sheet, 3 = loop).
+		aaSecStruct := make([]int, len(protein.Sequence))
+
+		// It should be initialized with 3s (as if not helix or sheet, then loop) and we assign helix and sheet below
+		for i := 0; i < len(aaSecStruct); i++ {
+			aaSecStruct[i] = 3
+		}
+
+		// convert the reassignedABHelixSheet slice to aaSecStruct slice
+		aaSecStruct = ConvertABHelixSheetToAASecStruct(ssStruc, aaSecStruct)
+		fmt.Println(aaSecStruct)
+		// 2D VISUALIZATION
+		// name according to the outputNames array
+		Make2DPlot(aaSecStruct, "outputs/2d_plots/2DPlot_"+outputNames[itr]+"GOR.png")
+
+		// 3D VISUALIZATION (only if filetype is 'array')
+		if fileType == "array" {
+			// name output according to the outputNames array and also the pdb will be existing in the
+			// 3d_visualization_resources folder with the same name
+			Make3DPlot(aaSecStruct, "3d_visualization_resources/"+uniprotIDs[itr]+".pdb", "outputs/3d_htmls/3DPlot_"+outputNames[itr]+"GOR.html")
+
+		}
 	}
 }

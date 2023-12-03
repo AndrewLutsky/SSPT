@@ -90,13 +90,13 @@ func GorPredictionConv(intermediateArray []int) []ABHelixSheet {
 
 func ConvertIntToType(val int) string {
 	if val == 0 {
-		return "Helix"
+		return "helix"
 	} else if val == 1 {
-		return "Sheet"
+		return "sheet"
 	} else if val == 2 {
-		return "Loop"
+		return "loop"
 	} else {
-		return "Coil"
+		return "coil"
 	}
 }
 
