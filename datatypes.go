@@ -8,6 +8,7 @@ type CFScore struct {
 	Helix float64
 	Sheet float64
 	Loop  float64
+	Turn  float64
 }
 
 type ABHelixSheet struct {

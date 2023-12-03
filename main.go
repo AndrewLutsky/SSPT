@@ -129,11 +129,22 @@ func main() {
 
 		}
 	}
-	/*
-		for itr, protein := range proteins {
-			ProteinPredGorArray[itr] = GORPrediction(protein, parameters, aaIndexMap)
-			fmt.Println(protein, parameters, aaIndexMap)
-			// predict helices
+
+	ProteinPredGorArray := make([][]CFScore, len(proteins))
+	for itr, protein := range proteins {
+		alphaParam := GORMethodInput("GorParams/alpha_helix.txt")
+		sheetParam := GORMethodInput("GorParams/beta_strand.txt")
+		turnParam := GORMethodInput("GorParams/beta_turn.txt")
+		coilParam := GORMethodInput("GorParams/coil.txt")
+		params := make([][][]float64, 4)
+		params[0], params[1], params[2], params[3] = alphaParam, sheetParam, turnParam, coilParam
+		aaIndexMap := ReadAAIndexMap("aa_index_map_gor.txt")
+
+		ProteinPredGorArray[itr] = GORPrediction(protein, params, aaIndexMap)
+		ssStruc := GorPredictionConv(ConvertPredToArr(ProteinPredGorArray[itr]))
+		fmt.Println(ssStruc)
+		// predict helices
+		/*
 			helices := IdentifyHelicies(ProteinPredArray[itr])
 			fmt.Println("\n\nFound Helicies:", helices)
 			// predict beta sheets
@@ -144,8 +155,8 @@ func main() {
 			reassignedABHelixSheet = FillGapsInSequence(len(ProteinPredArray), reassignedABHelixSheet)
 			fmt.Println("\n\nFound after Reassignment:", reassignedABHelixSheet)
 			reassignedABHelixSheet = IdentifyTurns(protein, parameters, aaIndexMap, reassignedABHelixSheet)
-			fmt.Println("Completed secondary structure assignment using CF!")
+		*/
+		fmt.Println("Completed secondary structure assignment using CF!")
 
-		}
-	*/
+	}
 }
