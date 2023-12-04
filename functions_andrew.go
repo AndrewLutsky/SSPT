@@ -126,3 +126,33 @@ func inSecondStructure(index int, betaSheet ABHelixSheet) bool {
 	}
 	return false
 }
+
+// Function to assess accuracy of the program.
+func assessAccuracy(predSS, realSS string) float64 {
+	if len(predSS) != len(realSS) {
+		panic("Not the same length secondary structure!")
+	}
+	var count float64
+	for i := range predSS {
+		if predSS[i] == realSS[i] {
+			count++
+		}
+	}
+
+	return count / float64(len(predSS))
+}
+
+func convertAASecStrucToString(aaSecStruc []int) string {
+	totalString := ""
+	for _, val := range aaSecStruc {
+		if val == 2 {
+			totalString += "S"
+		} else if val == 1 {
+			totalString += "H"
+		} else {
+			totalString += "L"
+		}
+	}
+
+	return totalString
+}
