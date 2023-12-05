@@ -1,5 +1,13 @@
 package main
 
+import (
+	"bufio"
+	"fmt"
+	"io/fs"
+	"log"
+	"os"
+)
+
 //Function to identify bends in the protein.
 
 /*
@@ -96,7 +104,10 @@ func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 					secondStruc := new(ABHelixSheet)
 
 					firstStruc = &secStruc[j]
-					secondStruc = firstStruc
+					secondStruc.typeAB = firstStruc.typeAB
+					secondStruc.StartIndex = firstStruc.StartIndex
+					secondStruc.EndIndex = firstStruc.EndIndex
+					secondStruc.Score = firstStruc.Score
 
 					firstStruc.EndIndex = indTurn - 1
 					secondStruc.StartIndex = indTurn + 1
@@ -155,4 +166,130 @@ func convertAASecStrucToString(aaSecStruc []int) string {
 	}
 
 	return totalString
+}
+
+func TestGorAndFasman(dir string, parameters [][]float64, aaIndexMap map[rune]int) {
+	//Range through all of the results validation tests.
+	files := ReadDirectory(dir)
+	ProteinPredArray := make([][]CFScore, len(files))
+	ProteinPredGorArray := make([][]CFScore, len(files))
+
+	alphaParam := GORMethodInput("GorParams/alpha_helix.txt")
+	sheetParam := GORMethodInput("GorParams/beta_strand.txt")
+	turnParam := GORMethodInput("GorParams/beta_turn.txt")
+	coilParam := GORMethodInput("GorParams/coil.txt")
+
+	for i, inputFile := range files {
+		//Do Chou-Fasman on this secondary structure
+		//create a protein from this input file
+		var newProt Protein
+		var actualStructure string
+		newProt.Sequence, actualStructure = GORReadTests(dir + "/" + inputFile.Name())
+		actualStructure = mapSSToLocalStructure(actualStructure)
+		ProteinPredArray[i] = ChouFasman(newProt, parameters, aaIndexMap)
+		//Predict helices
+		helices := IdentifyHelicies(ProteinPredArray[i])
+
+		// predict beta sheets
+		betaSheets := IdentifySheets2(ProteinPredArray[i])
+
+		// reassign the helices and sheets as appropriate
+		reassignedABHelixSheet := AHelicalBSheetAssignment(append(helices, betaSheets...))
+		reassignedABHelixSheet = FillGapsInSequence(len(ProteinPredArray), reassignedABHelixSheet)
+
+		//Reassign structures for turns
+		//reassignedABHelixSheet = IdentifyTurns(newProt, parameters, aaIndexMap, reassignedABHelixSheet)
+
+		aaSecStructCFSingle := make([]int, len(newProt.Sequence))
+
+		// make int slice, which would store the information about the secondary structure of each position
+		// (1 = helix, 2 = sheet, 3 = loop).
+
+		// It should be initialized with 3s (as if not helix or sheet, then loop) and we assign helix and sheet below
+		for i := 0; i < len(aaSecStructCFSingle); i++ {
+			aaSecStructCFSingle[i] = 3
+		}
+
+		// convert the reassignedABHelixSheet slice to aaSecStruct slice
+		aaSecStructSingle := ConvertABHelixSheetToAASecStruct(reassignedABHelixSheet, aaSecStructCFSingle)
+
+		accCF := assessAccuracy(convertAASecStrucToString(aaSecStructSingle), actualStructure)
+
+		//Do GOR on this file
+		params := make([][][]float64, 4)
+		params[0], params[1], params[2], params[3] = alphaParam, sheetParam, turnParam, coilParam
+		aaIndexMap := ReadAAIndexMap("aa_index_map_gor.txt")
+		ProteinPredGorArray[i] = GORPrediction(newProt, params, aaIndexMap)
+		ssStruc := GorPredictionConv(ConvertPredToArr(ProteinPredGorArray[i]))
+		// make int slice, which would store the information about the secondary structure of each position
+		// (1 = helix, 2 = sheet, 3 = loop).
+		aaSecStructGORSingle := make([]int, len(newProt.Sequence))
+
+		// It should be initialized with 3s (as if not helix or sheet, then loop) and we assign helix and sheet below
+		for i := 0; i < len(aaSecStructGORSingle); i++ {
+			aaSecStructGORSingle[i] = 3
+		}
+
+		// convert the reassignedABHelixSheet slice to aaSecStruct slice
+		aaSecStructSingle = ConvertABHelixSheetToAASecStruct(ssStruc, aaSecStructGORSingle)
+
+		accGor := assessAccuracy(convertAASecStrucToString(aaSecStructSingle), actualStructure)
+		fmt.Println(accCF, accGor)
+
+	}
+
+}
+
+// This functtion takes in the inputs from the GorParams folder
+func GORReadTests(file string) (string, string) {
+	f, err := os.Open(file)
+	if err != nil {
+		log.Panicf("Cannot open file: %s", err)
+	}
+	var ss string
+	var seq string
+	scanner := bufio.NewScanner(f)
+
+	var counter int
+	for scanner.Scan() {
+		line := scanner.Text()
+		if counter == 0 {
+			seq = line
+		}
+		if counter == 1 {
+			ss = line
+		}
+		counter++
+	}
+
+	defer f.Close()
+
+	return seq, ss
+}
+
+// ReadDirectory reads in a directory and returns a slice of fs.DirEntry
+// objects containing file info for the directory.
+func ReadDirectory(dir string) []fs.DirEntry {
+	//read in all files in the given directory
+	files, err := os.ReadDir(dir)
+	//Checking if there is an error.
+	if err != nil {
+		panic(err)
+	}
+	//Return the files from the directory.
+	return files
+}
+
+func mapSSToLocalStructure(sequenceFromSS string) string {
+	var newSequence string
+	for i := range sequenceFromSS {
+		if string(sequenceFromSS[i]) == "C" {
+			newSequence += "L"
+		} else if string(sequenceFromSS) == "E" {
+			newSequence += "S"
+		} else {
+			newSequence += "H"
+		}
+	}
+	return newSequence
 }

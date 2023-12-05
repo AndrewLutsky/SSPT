@@ -116,7 +116,7 @@ func ChouFasman(protein Protein, parameters [][]float64, aaIndexMap map[rune]int
 		predictionArray[i] = BetterChouFasmanWindow(protein.Sequence[i:i+1], parameters, aaIndexMap)
 	}
 
-	fmt.Println(predictionArray)
+	//fmt.Println(predictionArray)
 	return predictionArray
 }
 
