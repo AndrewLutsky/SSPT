@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"strconv"
 )
 
 //Function to identify bends in the protein.
@@ -139,18 +140,45 @@ func inSecondStructure(index int, betaSheet ABHelixSheet) bool {
 }
 
 // Function to assess accuracy of the program.
-func assessAccuracy(predSS, realSS string) float64 {
+func assessAccuracy(predSS, realSS string) (float64, float64, float64, float64) {
 	if len(predSS) != len(realSS) {
 		panic("Not the same length secondary structure!")
+		print(len(predSS), len(realSS))
 	}
 	var count float64
+	var countCorrectHelices, totalHelices float64
+	var countCorrectSheets, totalSheets float64
+	var countCorrectCoils, totalCoils float64
+
 	for i := range predSS {
 		if predSS[i] == realSS[i] {
 			count++
+			if string(predSS[i]) == "H" {
+				countCorrectHelices++
+			} else if string(predSS[i]) == "S" {
+				countCorrectSheets++
+			} else {
+				countCorrectCoils++
+			}
 		}
+
+		if string(realSS[i]) == "H" {
+			totalHelices++
+		} else if string(realSS[i]) == "S" {
+			totalSheets++
+		} else {
+			totalCoils++
+		}
+
 	}
 
-	return count / float64(len(predSS))
+	acc := count / float64(len(predSS))
+
+	accH := countCorrectHelices / totalHelices
+	accS := countCorrectSheets / totalSheets
+	accC := countCorrectCoils / totalCoils
+
+	return acc, accH, accS, accC
 }
 
 func convertAASecStrucToString(aaSecStruc []int) string {
@@ -179,12 +207,19 @@ func TestGorAndFasman(dir string, parameters [][]float64, aaIndexMap map[rune]in
 	turnParam := GORMethodInput("GorParams/beta_turn.txt")
 	coilParam := GORMethodInput("GorParams/coil.txt")
 
+	file, err := os.Create("results/Output/results.csv")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	fmt.Fprintf(file, "Protein Name, accCF, accCFHelices, accCFSheets, accCFCoils, accGor, accGorHelices, accGorSheets, accGorCoils")
 	for i, inputFile := range files {
 		//Do Chou-Fasman on this secondary structure
 		//create a protein from this input file
 		var newProt Protein
 		var actualStructure string
 		newProt.Sequence, actualStructure = GORReadTests(dir + "/" + inputFile.Name())
+		newProt.Identifier = inputFile.Name()[0:5]
 		actualStructure = mapSSToLocalStructure(actualStructure)
 		ProteinPredArray[i] = ChouFasman(newProt, parameters, aaIndexMap)
 		//Predict helices
@@ -213,7 +248,8 @@ func TestGorAndFasman(dir string, parameters [][]float64, aaIndexMap map[rune]in
 		// convert the reassignedABHelixSheet slice to aaSecStruct slice
 		aaSecStructSingle := ConvertABHelixSheetToAASecStruct(reassignedABHelixSheet, aaSecStructCFSingle)
 
-		accCF := assessAccuracy(convertAASecStrucToString(aaSecStructSingle), actualStructure)
+		cfstr := convertAASecStrucToString(aaSecStructSingle)
+		accCF, accCFHelices, accCFSheets, accCFCoils := assessAccuracy(cfstr, actualStructure)
 
 		//Do GOR on this file
 		params := make([][][]float64, 4)
@@ -233,9 +269,22 @@ func TestGorAndFasman(dir string, parameters [][]float64, aaIndexMap map[rune]in
 		// convert the reassignedABHelixSheet slice to aaSecStruct slice
 		aaSecStructSingle = ConvertABHelixSheetToAASecStruct(ssStruc, aaSecStructGORSingle)
 
-		accGor := assessAccuracy(convertAASecStrucToString(aaSecStructSingle), actualStructure)
-		fmt.Println(accCF, accGor)
+		gorstr := convertAASecStrucToString(aaSecStructSingle)
+		accGor, accGorHelices, accGorSheets, accGorCoils := assessAccuracy(gorstr, actualStructure)
 
+		//fmt.Println(accCF, ",", accCFHelices, ",", accCFSheets, ",", accCFCoils, ",", accGor, ",", accGorHelices, ",", accGorSheets, ",", accGorCoils)
+
+		accCFStr := strconv.FormatFloat(accCF, 'f', -1, 64)
+		accCFHelicesStr := strconv.FormatFloat(accCFHelices, 'f', -1, 64)
+		accCFSheetsStr := strconv.FormatFloat(accCFSheets, 'f', -1, 64)
+		accCFCoilsStr := strconv.FormatFloat(accCFCoils, 'f', -1, 64)
+		accGorStr := strconv.FormatFloat(accGor, 'f', -1, 64)
+		accGorHelicesStr := strconv.FormatFloat(accGorHelices, 'f', -1, 64)
+		accGorSheetsStr := strconv.FormatFloat(accGorSheets, 'f', -1, 64)
+		accGorCoilsStr := strconv.FormatFloat(accGorCoils, 'f', -1, 64)
+
+		fmt.Fprintf(file, "\n")
+		fmt.Fprintf(file, newProt.Identifier+","+accCFStr+","+accCFHelicesStr+","+accCFSheetsStr+","+accCFCoilsStr+","+accGorStr+","+accGorHelicesStr+","+accGorSheetsStr+","+accGorCoilsStr)
 	}
 
 }
@@ -285,7 +334,7 @@ func mapSSToLocalStructure(sequenceFromSS string) string {
 	for i := range sequenceFromSS {
 		if string(sequenceFromSS[i]) == "C" {
 			newSequence += "L"
-		} else if string(sequenceFromSS) == "E" {
+		} else if string(sequenceFromSS[i]) == "E" {
 			newSequence += "S"
 		} else {
 			newSequence += "H"
