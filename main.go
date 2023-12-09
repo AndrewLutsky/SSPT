@@ -15,6 +15,11 @@ func main() {
 
 	// Read the AAIndex file
 	aaIndexMap := ReadAAIndexMap("aa_index_map.txt")
+	var algorithm int
+
+	// Determine which algorithm to use
+	fmt.Println("Which algorithm do you want to use? 1)Chou-Fasman OR 2)GOR. Type 1 or 2.")
+	fmt.Scanln(&algorithm)
 
 	// Determine input. Then either translate or read from FASTA.
 	// There will three types of input: an array of uniprot IDs, a FASTA file, or a DNA sequence.
@@ -82,93 +87,100 @@ func main() {
 		panic("Incorrect reading source entered.")
 	}
 
-	// made a slice of slice of CFScore, for each protein in fasta file
-	ProteinPredArray := make([][]CFScore, len(proteins))
-	//ProteinPredGorArray := make([][]CFScore, len(proteins))
-	for itr, protein := range proteins {
-		ProteinPredArray[itr] = ChouFasman(protein, parameters, aaIndexMap)
-		fmt.Println(protein, parameters, aaIndexMap)
+	if algorithm == 1 {
+		// made a slice of slice of CFScore, for each protein in fasta file
+		ProteinPredArray := make([][]CFScore, len(proteins))
+		for itr, protein := range proteins {
+			ProteinPredArray[itr] = ChouFasman(protein, parameters, aaIndexMap)
+			fmt.Println(protein, parameters, aaIndexMap)
 
-		// predict helices
-		helices := IdentifyHelicies(ProteinPredArray[itr])
-		fmt.Println("\n\nFound Helicies:", helices)
-		// predict beta sheets
-		betaSheets := IdentifySheets2(ProteinPredArray[itr])
-		fmt.Println("\n\nFound Beta Sheets:", betaSheets)
-		// reassign the helices and sheets as appropriate
-		reassignedABHelixSheet := AHelicalBSheetAssignment(append(helices, betaSheets...))
-		reassignedABHelixSheet = FillGapsInSequence(len(ProteinPredArray), reassignedABHelixSheet)
+			// predict helices
+			helices := IdentifyHelicies(ProteinPredArray[itr])
+			fmt.Println("\n\nFound Helicies:", helices)
+			// predict beta sheets
+			betaSheets := IdentifySheets2(ProteinPredArray[itr])
+			fmt.Println("\n\nFound Beta Sheets:", betaSheets)
+			// reassign the helices and sheets as appropriate
+			reassignedABHelixSheet := AHelicalBSheetAssignment(append(helices, betaSheets...))
+			reassignedABHelixSheet = FillGapsInSequence(len(ProteinPredArray), reassignedABHelixSheet)
 
-		fmt.Println("\n\nFound after Reassignment:", reassignedABHelixSheet)
-		//reassignedABHelixSheet = IdentifyTurns(protein, parameters, aaIndexMap, reassignedABHelixSheet)
-		// fmt.Println("Completed secondary structure assignment using CF!")
+			fmt.Println("\n\nFound after Reassignment:", reassignedABHelixSheet)
+			fmt.Println("Completed secondary structure assignment using CF!")
 
-		// VISUALIZATION CODE BELOW
+			// VISUALIZATION CODE BELOW
 
-		// make int slice, which would store the information about the secondary structure of each position
-		// (1 = helix, 2 = sheet, 3 = loop).
-		aaSecStruct := make([]int, len(protein.Sequence))
+			// make int slice, which would store the information about the secondary structure of each position
+			// (1 = helix, 2 = sheet, 3 = loop).
+			aaSecStruct := make([]int, len(protein.Sequence))
 
-		// It should be initialized with 3s (as if not helix or sheet, then loop) and we assign helix and sheet below
-		for i := 0; i < len(aaSecStruct); i++ {
-			aaSecStruct[i] = 3
+			// It should be initialized with 3s (as if not helix or sheet, then loop) and we assign helix and sheet below
+			for i := 0; i < len(aaSecStruct); i++ {
+				aaSecStruct[i] = 3
+			}
+
+			// convert the reassignedABHelixSheet slice to aaSecStruct slice
+			aaSecStruct = ConvertABHelixSheetToAASecStruct(reassignedABHelixSheet, aaSecStruct)
+
+			// 2D VISUALIZATION
+			// name according to the outputNames array
+			Make2DPlot(aaSecStruct, "outputs/2d_plots/2DPlot_"+outputNames[itr]+".png")
+
+			// 3D VISUALIZATION (only if filetype is 'array')
+			if fileType == "array" {
+				// name output according to the outputNames array and also the pdb will be existing in the
+				// 3d_visualization_resources folder with the same name
+				Make3DPlot(aaSecStruct, "3d_visualization_resources/"+uniprotIDs[itr]+".pdb", "outputs/3d_htmls/3DPlot_"+outputNames[itr]+".html")
+
+			}
 		}
+	} else if algorithm == 2 {
 
-		// convert the reassignedABHelixSheet slice to aaSecStruct slice
-		aaSecStruct = ConvertABHelixSheetToAASecStruct(reassignedABHelixSheet, aaSecStruct)
+		ProteinPredGorArray := make([][]CFScore, len(proteins))
+		for itr, protein := range proteins {
+			alphaParam := GORMethodInput("GorParams/alpha_helix.txt")
+			sheetParam := GORMethodInput("GorParams/beta_strand.txt")
+			turnParam := GORMethodInput("GorParams/beta_turn.txt")
+			coilParam := GORMethodInput("GorParams/coil.txt")
+			params := make([][][]float64, 4)
+			params[0], params[1], params[2], params[3] = alphaParam, sheetParam, turnParam, coilParam
+			aaIndexMap := ReadAAIndexMap("aa_index_map_gor.txt")
 
-		// 2D VISUALIZATION
-		// name according to the outputNames array
-		Make2DPlot(aaSecStruct, "outputs/2d_plots/2DPlot_"+outputNames[itr]+".png")
+			ProteinPredGorArray[itr] = GORPrediction(protein, params, aaIndexMap)
+			ssStruc := GorPredictionConv(ConvertPredToArr(ProteinPredGorArray[itr]))
 
-		// 3D VISUALIZATION (only if filetype is 'array')
-		if fileType == "array" {
-			// name output according to the outputNames array and also the pdb will be existing in the
-			// 3d_visualization_resources folder with the same name
-			Make3DPlot(aaSecStruct, "3d_visualization_resources/"+uniprotIDs[itr]+".pdb", "outputs/3d_htmls/3DPlot_"+outputNames[itr]+".html")
+			fmt.Println("Completed secondary structure assignment using CF!")
 
+			// VISUALIZATION CODE BELOW
+
+			// make int slice, which would store the information about the secondary structure of each position
+			// (1 = helix, 2 = sheet, 3 = loop).
+			aaSecStruct := make([]int, len(protein.Sequence))
+
+			// It should be initialized with 3s (as if not helix or sheet, then loop) and we assign helix and sheet below
+			for i := 0; i < len(aaSecStruct); i++ {
+				aaSecStruct[i] = 3
+			}
+
+			// convert the reassignedABHelixSheet slice to aaSecStruct slice
+			aaSecStruct = ConvertABHelixSheetToAASecStruct(ssStruc, aaSecStruct)
+			fmt.Println(aaSecStruct)
+			// 2D VISUALIZATION
+			// name according to the outputNames array
+			Make2DPlot(aaSecStruct, "outputs/2d_plots/2DPlot_"+outputNames[itr]+"GOR.png")
+
+			// 3D VISUALIZATION (only if filetype is 'array')
+			if fileType == "array" {
+				// name output according to the outputNames array and also the pdb will be existing in the
+				// 3d_visualization_resources folder with the same name
+				Make3DPlot(aaSecStruct, "3d_visualization_resources/"+uniprotIDs[itr]+".pdb", "outputs/3d_htmls/3DPlot_"+outputNames[itr]+"GOR.html")
+
+			}
 		}
+	} else {
+		panic("Incorrect algorithm identifier entered.")
 	}
 
-	ProteinPredGorArray := make([][]CFScore, len(proteins))
-	for itr, protein := range proteins {
-		alphaParam := GORMethodInput("GorParams/alpha_helix.txt")
-		sheetParam := GORMethodInput("GorParams/beta_strand.txt")
-		turnParam := GORMethodInput("GorParams/beta_turn.txt")
-		coilParam := GORMethodInput("GorParams/coil.txt")
-		params := make([][][]float64, 4)
-		params[0], params[1], params[2], params[3] = alphaParam, sheetParam, turnParam, coilParam
-		aaIndexMap := ReadAAIndexMap("aa_index_map_gor.txt")
+	// below line is for testing purposes
+	// TestGorAndFasman("results/ExpectedValues", parameters, aaIndexMap)
 
-		ProteinPredGorArray[itr] = GORPrediction(protein, params, aaIndexMap)
-		ssStruc := GorPredictionConv(ConvertPredToArr(ProteinPredGorArray[itr]))
-
-		fmt.Println("Completed secondary structure assignment using CF!")
-
-		// make int slice, which would store the information about the secondary structure of each position
-		// (1 = helix, 2 = sheet, 3 = loop).
-		aaSecStruct := make([]int, len(protein.Sequence))
-
-		// It should be initialized with 3s (as if not helix or sheet, then loop) and we assign helix and sheet below
-		for i := 0; i < len(aaSecStruct); i++ {
-			aaSecStruct[i] = 3
-		}
-
-		// convert the reassignedABHelixSheet slice to aaSecStruct slice
-		aaSecStruct = ConvertABHelixSheetToAASecStruct(ssStruc, aaSecStruct)
-		fmt.Println(aaSecStruct)
-		// 2D VISUALIZATION
-		// name according to the outputNames array
-		Make2DPlot(aaSecStruct, "outputs/2d_plots/2DPlot_"+outputNames[itr]+"GOR.png")
-
-		// 3D VISUALIZATION (only if filetype is 'array')
-		if fileType == "array" {
-			// name output according to the outputNames array and also the pdb will be existing in the
-			// 3d_visualization_resources folder with the same name
-			Make3DPlot(aaSecStruct, "3d_visualization_resources/"+uniprotIDs[itr]+".pdb", "outputs/3d_htmls/3DPlot_"+outputNames[itr]+"GOR.html")
-
-		}
-	}
-
-	TestGorAndFasman("results/ExpectedValues", parameters, aaIndexMap)
 }

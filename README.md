@@ -41,6 +41,8 @@ go build
 ./SSPT    #for MacOS
 SSPT.exe  #for Windows
 ``` 
+- The program with first prompt you to choose the algorithm which you want to use for the predictions. Type in `1` if you want to use Chou-Fasman, or `2` if you want to use GOR. Press enter.
+
 - The program will prompt you to choose from three modes of operation: `array`, `FASTA`, or `DNA`. Type in the mode you want to run (case-sensitive) and press enter.
 
   - `array` mode will prompt you to enter a comma separated list of ensembl IDs. The program will then download the FASTA and PDB corresponding to each ensembl ID and run the algorithm on each protein sequence.
