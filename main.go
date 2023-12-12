@@ -22,8 +22,8 @@ func main() {
 	fmt.Scanln(&algorithm)
 
 	// Determine input. Then either translate or read from FASTA.
-	// There will three types of input: an array of uniprot IDs, a FASTA file, or a DNA sequence.
-	fmt.Println("Are you i)supplying an 'array' of Uniprots OR ii)Reading from 'FASTA' OR iii)Reading from 'DNA'?")
+	// There will three types of input: an array of Ensembls IDs, a FASTA file, or a DNA sequence.
+	fmt.Println("Are you i)supplying an 'array' of Ensembls OR ii)Reading from 'FASTA' OR iii)Reading from 'DNA'?")
 	var fileType string
 	fmt.Scanln(&fileType)
 	var proteins []Protein
