@@ -21,26 +21,45 @@ and (3) the averages for the tetrapeptide obey the inequality P(a-helix) < P(tur
 then a beta-turn is predicted at that location.
 */
 func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]int, secStruc []ABHelixSheet) []ABHelixSheet {
+	//Create a slice of turn data types
 	turns := make([]Turn, 0)
+
+	//Range through the protein sequence up until the last three(no parameters for these variables)
 	for i := 0; i < len(protein.Sequence)-3; i++ {
 		//Step 1 calculate the product of f(j) * f(j+1) * f(j+2) * f(j+3)
+
+		//Get the parameters for the next four amino acids
+
+		//J'th amino acid index.
 		aaIndex := aaIndexMap[rune(protein.Sequence[i])]
+		//J + 1 amino acid index.
 		aaIndexPlusOne := aaIndexMap[rune(protein.Sequence[i+1])]
+		//J+2 amino acid index.
 		aaIndexPlusTwo := aaIndexMap[rune(protein.Sequence[i+2])]
+		//J+3 amino acid index.
 		aaIndexPlusThree := aaIndexMap[rune(protein.Sequence[i+3])]
-		p_t := parameters[aaIndex][3] * parameters[aaIndexPlusOne][4] * parameters[aaIndexPlusTwo][5] * parameters[aaIndexPlusThree][6]
+
+		//Create the parameter value for those indeces using the parameters look up table.
+		p_t := parameters[aaIndex][3]
+		p_t *= parameters[aaIndexPlusOne][4]
+		p_t *= parameters[aaIndexPlusTwo][5]
+		p_t *= parameters[aaIndexPlusThree][6]
+
+		//Create a boolean to see if it satisfies the first condition.
 		satisfiesCond1 := p_t > 0.000075
 
 		//Step 2 calculate the average of P(turn) for the tetrapeptide.
-		//sum all the P(turns)
+		//Sum all the parameter values for the tetrapeptide.
 		avgTurn := parameters[aaIndex][2]
 		avgTurn += parameters[aaIndexPlusOne][2]
 		avgTurn += parameters[aaIndexPlusTwo][2]
 		avgTurn += parameters[aaIndexPlusThree][2]
 
+		//Create another boolean to see if it satisfies the second condition that the
+		//average is greater than one.
 		satisfiesCond2 := avgTurn/4.0 > 1.0
 
-		//Step 3 check inequality
+		//Step 3 - Check Inequality
 
 		//Finds the P(alpha) for the tetrapeptide.
 		avgAlpha := parameters[aaIndex][0]
@@ -56,18 +75,23 @@ func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 		avgBeta += parameters[aaIndexPlusThree][1]
 		avgBeta /= 4.0
 
-		//Checks the inequality.
+		//Creates a boolean to see if it satisfies the inequality.
 		satisfiesCond3 := avgTurn > avgAlpha && avgTurn > avgBeta
 
 		//Checks to see if all three conditions are met.
 		if satisfiesCond1 && satisfiesCond2 && satisfiesCond3 {
+			//Creates a new turn data type.
+			//Sets the index of the turn.
 			newTurn := new(Turn)
 			newTurn.Index = i
+
+			//Appends the new turn to the slice of turns.
 			turns = append(turns, *newTurn)
 		}
 
 	}
 
+	//Now that we have created a list of
 	//Checks to see if the given index is a beta sheet ->
 	for i := range turns {
 		indTurn := turns[i].Index
@@ -145,12 +169,14 @@ func assessAccuracy(predSS, realSS string) (float64, float64, float64, float64) 
 		panic("Not the same length secondary structure!")
 		print(len(predSS), len(realSS))
 	}
+
 	var count float64
 	var countCorrectHelices, totalHelices float64
 	var countCorrectSheets, totalSheets float64
 	var countCorrectCoils, totalCoils float64
 
 	for i := range predSS {
+		fmt.Println(predSS[i], realSS[i])
 		if predSS[i] == realSS[i] {
 			count++
 			if string(predSS[i]) == "H" {
