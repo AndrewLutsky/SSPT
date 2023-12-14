@@ -99,74 +99,14 @@ func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 	//Now that we have created a list of
 	//Checks to see if the given index is a beta sheet ->
 	return MergeTurns(turns, secStruc)
-	newSecStruc := make([]ABHelixSheet, len(secStruc))
-	for i := range turns {
-		indTurn := turns[i].Index
-		for j, structure := range secStruc {
-			if indTurn > structure.EndIndex {
-				continue
-			}
-			newTurn := new(ABHelixSheet)
-			newTurn.StartIndex = indTurn
-			newTurn.EndIndex = indTurn
-			newTurn.typeAB = "Turn"
-
-			if inSecondStructure(indTurn, structure) {
-				//Checks to make sure that the structure is a sheet and not a helix.
-				if structure.typeAB != "sheet" {
-					continue
-				}
-				if indTurn == structure.StartIndex {
-					newSecStruc = append(secStruc[:j-1], *newTurn)
-					newSecStruc = append(newSecStruc, secStruc[j:]...)
-					newSecStruc[j].StartIndex += 1
-					if j != 0 {
-						newSecStruc[j-1].EndIndex -= 1
-					}
-					return newSecStruc
-				} else if indTurn == structure.EndIndex {
-					newSecStruc = append(secStruc[:j], *newTurn)
-					newSecStruc = append(newSecStruc, secStruc[j:]...)
-					newSecStruc[j].EndIndex -= 1
-					if !(j >= len(secStruc)) {
-						newSecStruc[j+1].StartIndex += 1
-					}
-				} else {
-					//split the secondary structure into two
-					firstStruc := new(ABHelixSheet)
-					secondStruc := new(ABHelixSheet)
-
-					firstStruc = &secStruc[j]
-					secondStruc.typeAB = firstStruc.typeAB
-					secondStruc.StartIndex = firstStruc.StartIndex
-					secondStruc.EndIndex = firstStruc.EndIndex
-					secondStruc.Score = firstStruc.Score
-
-					firstStruc.EndIndex = indTurn - 1
-					secondStruc.StartIndex = indTurn + 1
-
-					fmt.Println(i, j, len(secStruc))
-					if secondStruc.StartIndex > secondStruc.EndIndex {
-						panic("This shouldn't happen! Start index is bigger!")
-					}
-
-					newSecStruc = append(secStruc[:j-1], *firstStruc)
-					newSecStruc = append(newSecStruc, *newTurn)
-					newSecStruc = append(newSecStruc, *secondStruc)
-					newSecStruc = append(newSecStruc, secStruc[j+1:]...)
-
-				}
-			}
-		}
-	}
-
-	return newSecStruc
 }
 
 func MergeTurns(identifiedTurns []Turn, secStruc []ABHelixSheet) []ABHelixSheet {
-	newSecStruc := make([]ABHelixSheet, len(secStruc))
+
 	for i := range identifiedTurns {
+		flagBreak := false
 		indTurn := identifiedTurns[i].Index
+	out:
 		for j, structure := range secStruc {
 			if indTurn > structure.EndIndex {
 				continue
@@ -174,6 +114,7 @@ func MergeTurns(identifiedTurns []Turn, secStruc []ABHelixSheet) []ABHelixSheet 
 			if structure.typeAB != "sheet" {
 				continue
 			}
+
 			newTurn := new(ABHelixSheet)
 			newTurn.StartIndex = indTurn
 			newTurn.EndIndex = indTurn
@@ -183,30 +124,44 @@ func MergeTurns(identifiedTurns []Turn, secStruc []ABHelixSheet) []ABHelixSheet 
 				//Three cases
 				//index of the turn is at start index
 				if indTurn == structure.StartIndex {
-					newSecStruc = append(secStruc[:j-1], *newTurn)
-					newSecStruc = append(newSecStruc, secStruc[j:]...)
-					newSecStruc[j].StartIndex += 1
-					if j != 0 {
-						newSecStruc[j-1].EndIndex -= 1
+					fmt.Println("Start Index")
+					if j == 0 {
+						secStruc[j].StartIndex += 1
+						secStruc = append([]ABHelixSheet{*newTurn}, secStruc...)
+					} else {
+						upToTurn := make([]ABHelixSheet, len(secStruc[:j]))
+						afterTurn := make([]ABHelixSheet, len(secStruc[j:]))
+						upToTurn = CopySecondaryStructure(secStruc[:j])
+						upToTurn[len(upToTurn)-1].EndIndex -= 1
+						afterTurn = CopySecondaryStructure(secStruc[j:])
+						afterTurn[0].StartIndex += 1
+						secStruc = append(upToTurn, *newTurn)
+						secStruc = append(secStruc, afterTurn...)
 					}
-					return newSecStruc
 				} else if indTurn == structure.EndIndex {
-					newSecStruc = append(secStruc[:j], *newTurn)
-					newSecStruc = append(newSecStruc, secStruc[j:]...)
-					newSecStruc[j-1].EndIndex -= 1
-					if !(j >= len(secStruc)) {
-						newSecStruc[j+1].StartIndex += 1
+					fmt.Println("End index", j)
+					upToTurn := make([]ABHelixSheet, 0)
+					afterTurn := make([]ABHelixSheet, 0)
+					if j != 0 {
+						upToTurn = CopySecondaryStructure(secStruc[:j])
+						upToTurn[j].EndIndex -= 1
+					} else {
+						upToTurn = []ABHelixSheet{secStruc[j]}
+					}
+					afterTurn = CopySecondaryStructure(secStruc[j:])
+					afterTurn[0].StartIndex += 1
+					secStruc = append(upToTurn, *newTurn)
+					if len(secStruc) != 2 {
+						secStruc = append(secStruc, afterTurn...)
 					}
 				} else {
 					//split the secondary structure into two
-					firstStruc := new(ABHelixSheet)
-					secondStruc := new(ABHelixSheet)
+					fmt.Println("Split")
+					firstStruc := *new(ABHelixSheet)
+					secondStruc := *new(ABHelixSheet)
 
-					firstStruc = &secStruc[j]
-					secondStruc.typeAB = firstStruc.typeAB
-					secondStruc.StartIndex = firstStruc.StartIndex
-					secondStruc.EndIndex = firstStruc.EndIndex
-					secondStruc.Score = firstStruc.Score
+					firstStruc = CopyHelixSheet(secStruc[j])
+					secondStruc = CopyHelixSheet(firstStruc)
 
 					firstStruc.EndIndex = indTurn - 1
 					secondStruc.StartIndex = indTurn + 1
@@ -215,18 +170,48 @@ func MergeTurns(identifiedTurns []Turn, secStruc []ABHelixSheet) []ABHelixSheet 
 						panic("This shouldn't happen! Start index is bigger!")
 					}
 
-					newSecStruc = append(secStruc[:j-1], *firstStruc)
-					newSecStruc = append(newSecStruc, *newTurn)
-					newSecStruc = append(newSecStruc, *secondStruc)
-					newSecStruc = append(newSecStruc, secStruc[j+1:]...)
+					upToTurn := make([]ABHelixSheet, len(secStruc[:j]))
+					afterTurn := make([]ABHelixSheet, len(secStruc[j:]))
+					upToTurn = CopySecondaryStructure(secStruc[:j])
+					afterTurn = CopySecondaryStructure(secStruc[j+1:])
+
+					secStruc = append(upToTurn, firstStruc)
+					secStruc = append(secStruc, *newTurn)
+					secStruc = append(secStruc, secondStruc)
+					secStruc = append(secStruc, afterTurn...)
 
 				}
+				flagBreak = true
+				fmt.Println("exit turn")
+			}
+			if flagBreak {
+				break out
 			}
 		}
+		fmt.Println(secStruc)
+	}
+
+	return secStruc
+
+}
+
+func CopySecondaryStructure(secStruc []ABHelixSheet) []ABHelixSheet {
+	newSecStruc := make([]ABHelixSheet, len(secStruc))
+	for i := range secStruc {
+		newSecStruc[i] = CopyHelixSheet(secStruc[i])
 	}
 
 	return newSecStruc
+}
 
+func CopyHelixSheet(helixOrSheet ABHelixSheet) ABHelixSheet {
+	newHelixSheet := new(ABHelixSheet)
+	newHelixSheet.typeAB = helixOrSheet.typeAB
+	newHelixSheet.Score = helixOrSheet.Score
+	newHelixSheet.StartIndex = helixOrSheet.StartIndex
+	newHelixSheet.EndIndex = helixOrSheet.EndIndex
+
+	return *newHelixSheet
 }
 
 func inSecondStructure(index int, betaSheet ABHelixSheet) bool {
@@ -240,8 +225,8 @@ func inSecondStructure(index int, betaSheet ABHelixSheet) bool {
 // Function to assess accuracy of the program.
 func assessAccuracy(predSS, realSS string) (float64, float64, float64, float64) {
 	if len(predSS) != len(realSS) {
-		panic("Not the same length secondary structure!")
 		print(len(predSS), len(realSS))
+		panic("Not the same length secondary structure!")
 	}
 
 	var count float64
