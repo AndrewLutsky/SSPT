@@ -13,13 +13,18 @@ import (
 
 /*
 To identify a bend at residue number j, calculate the following value
-
 p(t) = f(j)f(j+1)f(j+2)f(j+3) where the f(j+1) value for the j+1 residue is used,
 the f(j+2) value for the j+2 residue is used and the f(j+3) value for the j+3 residue is used.
 If: (1) p(t) > 0.000075; (2) the average value for P(turn) > 1.00 in the tetrapeptide;
 and (3) the averages for the tetrapeptide obey the inequality P(a-helix) < P(turn) > P(b-sheet),
 then a beta-turn is predicted at that location.
 */
+
+// Function that identifies turns given a particular protein structure, the parameters, an index map,
+// and a given ABHelix Sheet structure. It only finds turns in beta sheets.
+// Outputs: A new ABHelix Sheet structure with modified Beta Sheets that are interrupted with turns.
+// For example given a Sheet that goes from 1 to 10 and a turn that has been identified at 5, the
+// returned structure would be a sheet from 1 to 4, a turn at 5, and a sheet from 6 to 10.
 func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]int, secStruc []ABHelixSheet) []ABHelixSheet {
 	//Create a slice of turn data types
 	turns := make([]Turn, 0)
@@ -93,6 +98,8 @@ func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 
 	//Now that we have created a list of
 	//Checks to see if the given index is a beta sheet ->
+	return MergeTurns(turns, secStruc)
+	newSecStruc := make([]ABHelixSheet, len(secStruc))
 	for i := range turns {
 		indTurn := turns[i].Index
 		for j, structure := range secStruc {
@@ -103,11 +110,12 @@ func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 			newTurn.StartIndex = indTurn
 			newTurn.EndIndex = indTurn
 			newTurn.typeAB = "Turn"
-			newSecStruc := make([]ABHelixSheet, len(secStruc))
 
 			if inSecondStructure(indTurn, structure) {
-				//Three cases
-				//index of the turn is at start index
+				//Checks to make sure that the structure is a sheet and not a helix.
+				if structure.typeAB != "sheet" {
+					continue
+				}
 				if indTurn == structure.StartIndex {
 					newSecStruc = append(secStruc[:j-1], *newTurn)
 					newSecStruc = append(newSecStruc, secStruc[j:]...)
@@ -137,6 +145,7 @@ func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 					firstStruc.EndIndex = indTurn - 1
 					secondStruc.StartIndex = indTurn + 1
 
+					fmt.Println(i, j, len(secStruc))
 					if secondStruc.StartIndex > secondStruc.EndIndex {
 						panic("This shouldn't happen! Start index is bigger!")
 					}
@@ -145,14 +154,79 @@ func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 					newSecStruc = append(newSecStruc, *newTurn)
 					newSecStruc = append(newSecStruc, *secondStruc)
 					newSecStruc = append(newSecStruc, secStruc[j+1:]...)
-					return newSecStruc
 
 				}
 			}
 		}
 	}
 
-	return secStruc
+	return newSecStruc
+}
+
+func MergeTurns(identifiedTurns []Turn, secStruc []ABHelixSheet) []ABHelixSheet {
+	newSecStruc := make([]ABHelixSheet, len(secStruc))
+	for i := range identifiedTurns {
+		indTurn := identifiedTurns[i].Index
+		for j, structure := range secStruc {
+			if indTurn > structure.EndIndex {
+				continue
+			}
+			if structure.typeAB != "sheet" {
+				continue
+			}
+			newTurn := new(ABHelixSheet)
+			newTurn.StartIndex = indTurn
+			newTurn.EndIndex = indTurn
+			newTurn.typeAB = "Turn"
+
+			if inSecondStructure(indTurn, structure) {
+				//Three cases
+				//index of the turn is at start index
+				if indTurn == structure.StartIndex {
+					newSecStruc = append(secStruc[:j-1], *newTurn)
+					newSecStruc = append(newSecStruc, secStruc[j:]...)
+					newSecStruc[j].StartIndex += 1
+					if j != 0 {
+						newSecStruc[j-1].EndIndex -= 1
+					}
+					return newSecStruc
+				} else if indTurn == structure.EndIndex {
+					newSecStruc = append(secStruc[:j], *newTurn)
+					newSecStruc = append(newSecStruc, secStruc[j:]...)
+					newSecStruc[j-1].EndIndex -= 1
+					if !(j >= len(secStruc)) {
+						newSecStruc[j+1].StartIndex += 1
+					}
+				} else {
+					//split the secondary structure into two
+					firstStruc := new(ABHelixSheet)
+					secondStruc := new(ABHelixSheet)
+
+					firstStruc = &secStruc[j]
+					secondStruc.typeAB = firstStruc.typeAB
+					secondStruc.StartIndex = firstStruc.StartIndex
+					secondStruc.EndIndex = firstStruc.EndIndex
+					secondStruc.Score = firstStruc.Score
+
+					firstStruc.EndIndex = indTurn - 1
+					secondStruc.StartIndex = indTurn + 1
+
+					if secondStruc.StartIndex > secondStruc.EndIndex {
+						panic("This shouldn't happen! Start index is bigger!")
+					}
+
+					newSecStruc = append(secStruc[:j-1], *firstStruc)
+					newSecStruc = append(newSecStruc, *newTurn)
+					newSecStruc = append(newSecStruc, *secondStruc)
+					newSecStruc = append(newSecStruc, secStruc[j+1:]...)
+
+				}
+			}
+		}
+	}
+
+	return newSecStruc
+
 }
 
 func inSecondStructure(index int, betaSheet ABHelixSheet) bool {
