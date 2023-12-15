@@ -1589,4 +1589,199 @@ func mapSSToLocalStructure(sequenceFromSS string) string {
 	return newSequence
 }
 
+// The GOR (Garnier-Osguthorpe-Robson) method for predicting protein secondary structure is based on information theory
+// and uses a statistical approach.
+// Input: A protein data structure, a 3d parameter slice that contains all the secondary structures
+// parameters, and an indexmap that maps characters to numbers for the parameter.
+// Output:  This returns a prediction array that has been hijacked for the GOR method.
+func GORPrediction(protein Protein, parameters [][][]float64, aaIndexMap map[rune]int) PredArray {
+	windowSize := 17 // Typical window size used in GOR
+	//We divide the window size in half.
+	halfWindowSize := windowSize / 2
+	//We take the sequence and read it into a variable.
+	sequence := protein.Sequence
+	//We create a CFScore array for the prediction.
+	prediction := make(PredArray, len(sequence))
+
+	//Good faith effort to implement GOR II here.
+
+	//Need to figure out
+
+	// Loop through the protein sequence.
+	for i := 0; i < len(sequence); i++ {
+		//Create different float64's for different scores.
+		var scoreHelix, scoreStrand, scoreTurn, scoreCoil float64
+		//Create a variable for if we don't have enough space on both sides for the full window size.
+		var diff int
+
+		// Calculate the start of the sliding window.
+		windowStart := i - halfWindowSize
+		if windowStart < 0 {
+			windowStart = 0
+		}
+		//Calculate the end of the sliding window.
+		windowEnd := i + halfWindowSize
+		if windowEnd >= len(sequence) {
+			windowEnd = len(sequence) - 1
+		}
+
+		// Loop through the window
+		// at i = 0 [0:8]
+		// at i = 1 [0:9]
+		// at i = 2 [0:10]
+		//at i = 3 [0:11]
+		//... until [0:17]
+		//at i = 9 [1:18]
+		//This is where we use the difference integer.
+		if i >= 9 {
+			diff = i - 8
+		}
+
+		//Range through the window and sum the scores for each residue based on the GOR
+		//parameters.
+		for j := windowStart; j <= windowEnd; j++ {
+
+			//Create a variable of the specific index of the specific residue in the window.
+			aaIndex := aaIndexMap[rune(sequence[j])]
+			//Add the scores to their respective variables.
+			scoreHelix += parameters[0][aaIndex][j-diff]
+			scoreStrand += parameters[1][aaIndex][j-diff]
+			scoreTurn += parameters[2][aaIndex][j-diff]
+			scoreCoil += parameters[3][aaIndex][j-diff]
+		}
+
+		// Predict the structure based on the highest score (Whichever score is the highest).
+		if scoreHelix > scoreStrand && scoreHelix > scoreCoil && scoreHelix > scoreCoil {
+			prediction[i] = CFScore{Helix: scoreHelix} // Helix
+		} else if scoreStrand > scoreHelix && scoreStrand > scoreCoil && scoreStrand > scoreTurn {
+			prediction[i] = CFScore{Sheet: scoreStrand} // Sheet
+		} else if scoreTurn > scoreHelix && scoreTurn > scoreStrand && scoreTurn > scoreTurn {
+			prediction[i] = CFScore{Turn: scoreTurn} // Loop
+		} else {
+			prediction[i] = CFScore{Loop: scoreCoil}
+		}
+	}
+
+	//Return the overall prediction as a slice of CFScore's where the predicted string structure
+	//only has a score for the predicted structure, helix,sheet, or loop.
+	return prediction
+}
+
+// Function that converts an intermediate integer array back into an ABHelixSheet data structure.
+// You can think of this function as a converter between different data structures.
+// Input: An intermediate int array with different variables corresponding to different secondary
+// structure types.
+// Output: A slice of ABHelixSheet data structures.
+func GorPredictionConv(intermediateArray []int) []ABHelixSheet {
+	//Create an empty slice.
+	ssStruc := make([]ABHelixSheet, 0)
+
+	//Create an integer that stores the first integer of the slice.
+	lastNum := intermediateArray[0]
+
+	//Create a new ABHelixSheet and set it's type.
+	currentSecStruc := new(ABHelixSheet)
+	currentSecStruc.typeAB = ConvertIntToType(intermediateArray[0])
+
+	//Range through the integer temporary array.
+	for i := 0; i < len(intermediateArray); i++ {
+		//Set the current number to the current secondary structure.
+		currentNum := intermediateArray[i]
+
+		//Check to see if the current secondary structure is different from the previous secondary
+		//structure.
+		if currentNum != lastNum {
+			//If they are not equal we append to the slice and reset last number.
+			//Append to secondary structure slice.
+			ssStruc = append(ssStruc, *currentSecStruc)
+			//Set the new secondary structures.
+			newSecStruc := new(ABHelixSheet)
+
+			//Reset the indices of these new structures.
+			newSecStruc.StartIndex = i
+			newSecStruc.EndIndex = i
+			//Set the type of the new structure.
+			newSecStruc.typeAB = ConvertIntToType(intermediateArray[i])
+			//Set the current sec structure using the new secondary structure.
+			currentSecStruc = newSecStruc
+		} else {
+			//Increment the end index if we are not adding a new structure.
+			currentSecStruc.EndIndex = i
+		}
+
+		//Set the type of secondary structure that we are working with.
+		lastNum = intermediateArray[i]
+	}
+
+	//Return the converted secondary structure.
+	return ssStruc
+}
+
+// Function to convert an integer frmo the temporary integer to the string used for ABHelixSheet.typeAB
+// parameter. Used primarily in converting these data structures. It returns helix if given 0, sheet if
+// given 1, loop if given 2, and coil if given 3. Function acts like a ditionary.
+// Input: An integer coded for a specific secondary structure.
+// Output: A given type of secondary structure given the integer.
+func ConvertIntToType(val int) string {
+	//Return the correct string given the right integer value.
+	if val == 0 {
+		return "helix"
+	} else if val == 1 {
+		return "sheet"
+	} else if val == 2 {
+		return "loop"
+	} else {
+		return "coil"
+	}
+}
+
+// Function that converts a prediction array that is a slice of CFScore data structures into an
+// integer temp array of secondary structures, 1 being helix, 2 being sheet, 3 being loop, and 4
+// being coil.
+// Input: A prediction array or a slice of CFScores.
+// Output: An integer secondary structure array.
+func ConvertPredToArr(predArr PredArray) []int {
+	//Create a new slice.
+	ssStruc := make([]int, len(predArr))
+	//Range through the slice of CFScores.
+	for i := range predArr {
+		//Create a slice of all four of those float values. (We only used three to determine secondary
+		//structure so that's all that is necessary to use. Additionally if it is not encoded as
+		//those three ss, we use coil anyways.)
+		ssValues := make([]float64, 4)
+		ssValues[0] = predArr[i].Helix
+		ssValues[1] = predArr[i].Sheet
+		ssValues[2] = predArr[i].Loop
+		//Find the maximum of those values.
+		ind := max(ssValues)
+		//Set the secondary structure using the max.
+		ssStruc[i] = ind
+	}
+
+	//Returns an integer array of secondary structure.
+	return ssStruc
+}
+
+// Function that finds the maximum value's index in a slice of float64s.
+// Input: A slice of float64's.
+// Output: The integer of the maximum value in the slice.
+func max(vals []float64) int {
+	//Set the maximum value as the first element.
+	max := vals[0]
+	//Count the index by using a variable.
+	index := 0
+	//Range through the values.
+	for i, val := range vals {
+		//Check to see if the value is bigger than the currrently tracked max.
+		if val > max {
+			//If it is set max to the value and the index to the index we are on.
+			max = val
+			index = i
+		}
+	}
+
+	//We then return the index.
+	return index
+}
+
 //Identify turn functions and GOR functions end here!
