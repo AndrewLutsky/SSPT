@@ -112,7 +112,8 @@ func ReadParameters(file string) [][]float64 {
 	return parameters
 }
 
-// Function to call the Chou-Fasman algorithm on a window of a sequence and return the prediction array
+// Function to call the Chou-Fasman algorithm on a window of a sequence and return the prediction array.
+// Reimplemented to use a better function that more aptly utilizes the parameters.
 // func ChouFasman(seq string, parameters [][]float64, aaIndexMap map[rune]int) []int {
 func ChouFasman(protein Protein, parameters [][]float64, aaIndexMap map[rune]int) PredArray {
 
@@ -417,16 +418,18 @@ func TranslateDNA(dnaReader *DNAReader) Protein {
 	return protein
 }
 
-// TranscribeDNA transcribes a DNA string into RNA
+// TranscribeDNA transcribes a DNA string into an RNA string.
 func TranscribeDNA(dnaString string) string {
 	rnaString := strings.Replace(dnaString, "T", "U", -1)
 	rnaString = strings.Replace(dnaString, "t", "u", -1)
 	return rnaString
 }
 
-// TranslateCodon translates a given codon into its corresponding protein
+// TranslateCodon translates a given codon into its corresponding protein.
 func TranslateCodon(codon string) AminoAcid {
+	//Change the string into an uppercase triplet.
 	codon = strings.ToUpper(codon)
+	//Maps the triplets to a individual residue code.
 	codonToAminoAcid := map[string]string{
 		"UUU": "F", "UUC": "F",
 		"UUA": "L", "UUG": "L", "CUU": "L", "CUC": "L", "CUA": "L", "CUG": "L",
@@ -452,11 +455,14 @@ func TranslateCodon(codon string) AminoAcid {
 		"GGU": "G", "GGC": "G", "GGA": "G", "GGG": "G",
 	}
 
+	//Maps the codon to amino acid using previously defined dictionary. If it doesn't return
+	//an unknown code.
 	aminoAcid, exists := codonToAminoAcid[codon]
 	if !exists {
 		return AminoAcid{"unknown"}
 	}
 
+	//Return the amino acid.
 	return AminoAcid{Identifier: aminoAcid}
 }
 
