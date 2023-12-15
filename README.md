@@ -12,7 +12,6 @@ Outdated Secondary Structure Tool using Golang.
 - `GorParams/*` - Parameter files for GOR prediction algorithm.
 - `aa_index_map.txt` - Amino acid index map for Chou-Fasman algorithm.
 - `aa_index_map_gor.txt` - Amino acid index map for the GOR algorithm.
-- `functions_rohit.go` - Functions for reading and writing to files.
 - `SSPT` and `SSPT.exe` - Executable files for the program for Mac and Windows.
 - `3d_visualization_resources` - Contains the pdbs and template html required for the 3d visualization.
 - `outputs` - Contains the output files (2D plots, 3D html, and downloaded fastas of the ensembls provided).
@@ -79,4 +78,17 @@ and the following 3D visualization:
 # Dependencies:
 - github.com/fogleman/gg
 - github.com/pachterlab/gget
+
+# Contributions: 
+
+- `Jon Potter` - Jon contributed to the project by constructing the code for most of the Chou-Fasman algorithm backend, everything along the pipeline from a string of amino acids to the collection of labeled features. Jon also laid the foundation for the GOR I method. Jon contributed to the presentation by constructing visual diagrams for the Chou Fasman algorithm slides. Jon contributed to the final report by writing about the Chou-Fasman algorithm and how it was applied to the problem at hand. Finally, Jon attended the weekly meetings to discuss the project’s direction and group work assignments.
+
+ - `Andrew Lutsky` - Andrew contributed to the overall project by implementing the identifying turns section of the CF algorithm as well as completing the overall implementation the GOR I algorithm and performing exploratory data analysis to visualize comparative accuracies of the two algorithms. He also attempted to implement GOR II using directional parameter restraints. Andrew contributed to the final report by writing about the GOR algorithm and how it was applied to the problem, DSSP classification, and the results section of the report.He also created visual representation of the walkthrough of the GOR algorithms. Additionally, Andrew attended the weekly meetings to discuss the project’s direction and group work assignments as well as performed last minute code commenting and overall cleanup.
+
+
+ - `Rohit Nandakumar` - Rohit contributed to the project by creating the input files for FASTA and CIF sequences. Additionally, Rohit assisted in the creation of the Chou-Fasman method, focusing on beta sheet identification. Rohit was heavily involved with creating testing functions for ten functions.
+In regards to the non-coding aspects of the project, Rohit wrote up the “Background” and “Future Advancements” sections of the paper and presentation. Lastly, Rohit attended weekly meetings with the group to discuss direction and progress.
+
+- `Shashank Katiyar` - Shashank was heavily involved in creating the visualization tool for the project and implementing overall general use data structures for the entire codebase. Shashank also attended weekly meetings with the group to discuss direction and progress. Shashank contributed to the presentation by talking about the various different approaches taken to visualize the protein structure.
+
 
