@@ -1402,7 +1402,7 @@ func TestGorAndFasman(dir string, parameters [][]float64, aaIndexMap map[rune]in
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
+	//defer file.Close()
 	//Print out the protein name, the accuracies for chou fasman, and then the accuracy for
 	//Gor out into the csv file for header information.
 	fmt.Fprintf(file, "Protein Name, accCF, accCFHelices, accCFSheets, accCFCoils, accGor, accGorHelices, accGorSheets, accGorCoils")
@@ -1610,7 +1610,16 @@ func GORPrediction(protein Protein, parameters [][][]float64, aaIndexMap map[run
 
 	//Good faith effort to implement GOR II here.
 
-	//Need to figure out
+	//GOR II implementation
+	mapHelicesDC := map[string]float64{"Small": 158, "Mid": -75, "Large": -100}
+
+	mapSheetsDC := map[string]float64{"Small": 50, "Medium": -87.5, "Large": -87.5}
+
+	//Proportion of size
+	ratioSize := proportionOfSize(float64(windowSize), float64(len(sequence)))
+	size := ratioToSize(ratioSize)
+	DCHelix := mapHelicesDC[size]
+	DCSheet := mapSheetsDC[size]
 
 	// Loop through the protein sequence.
 	for i := 0; i < len(sequence); i++ {
@@ -1654,6 +1663,16 @@ func GORPrediction(protein Protein, parameters [][][]float64, aaIndexMap map[run
 			scoreTurn += parameters[2][aaIndex][j-diff]
 			scoreCoil += parameters[3][aaIndex][j-diff]
 		}
+
+		//add the Directional constants to the scores.
+		/*
+			scoreHelix += DCHelix
+			scoreStrand += DCSheet
+		*/
+
+		//Added one to DC, comment this if you want to implement GOR II and uncomment previous section.
+		DCHelix += 1
+		DCSheet += 1
 
 		// Predict the structure based on the highest score (Whichever score is the highest).
 		if scoreHelix > scoreStrand && scoreHelix > scoreCoil && scoreHelix > scoreCoil {
@@ -1787,6 +1806,25 @@ func max(vals []float64) int {
 
 	//We then return the index.
 	return index
+}
+
+//Good faith effort for implementing GOR II
+
+// Function to identify relative size of the window to the length of the protein.
+// Input: windowsize and length of the protein.
+// Output: Ratio of windowsize to length of the protein.
+func proportionOfSize(windowSize, lenProtein float64) float64 {
+	return windowSize / lenProtein
+}
+
+func ratioToSize(ratio float64) string {
+	if ratio < 0.2 {
+		return "Small"
+	} else if ratio < 0.5 && ratio >= 0.2 {
+		return "Medium"
+	} else {
+		return "Large"
+	}
 }
 
 //Identify turn functions and GOR functions end here!

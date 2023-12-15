@@ -149,7 +149,7 @@ func main() {
 			ProteinPredGorArray[itr] = GORPrediction(protein, params, aaIndexMap)
 			ssStruc := GorPredictionConv(ConvertPredToArr(ProteinPredGorArray[itr]))
 
-			fmt.Println("Completed secondary structure assignment using CF!")
+			fmt.Println("Completed secondary structure assignment using GOR!")
 
 			// VISUALIZATION CODE BELOW
 
@@ -180,8 +180,8 @@ func main() {
 	} else {
 		panic("Incorrect algorithm identifier entered.")
 	}
-
+	fmt.Println("Testing")
 	// below line is for testing purposes
-	//TestGorAndFasman("results/ExpectedValues", parameters, aaIndexMap)
+	TestGorAndFasman("results/ExpectedValues", parameters, aaIndexMap)
 
 }
