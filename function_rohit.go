@@ -11,29 +11,39 @@ import (
 	"strings"
 )
 
+// Function to create a FASTA reader data structure.
+// Input: File name string input.
+// Output: FASTAreader data structure output.
 func GenerateFASTAReader(fileName string) FASTAReader {
+	//Open the file using the given file name.
 	file, err := os.Open(fileName)
+	//If error panic.
 	if err != nil {
 		log.Panic(err)
 	}
 
-	// (Shashank) below line needed to be commented out to make the file non empty. Else, the ReadProteins
-	// function will return an empty slice
-	// defer file.Close()
+	//Return the fastareader which contains the file information.
 	return FASTAReader{file: file}
 }
 
-// ReadProteins reads proteins from given FASTA file
+// ReadProteins reads proteins from given FASTA file.
+// Input: A fastareader data structure.
+// Output: A slice of protein data structures.
 func ReadProteinsFASTA(fastaReader FASTAReader) []Protein {
+	//Create a slice of proteins.
 	var proteins []Protein
+	//Create a current protein.
 	var currProtein Protein
+	//Scan thorugh the file.
 	scanner := bufio.NewScanner(fastaReader.file)
 	for scanner.Scan() {
+		//Read in the line's text.
 		line := scanner.Text()
+		//If the string starts with > then set the identifier of the protein.
 		if strings.HasPrefix(line, ">") {
 			// case when line is protein identifier
 			currProtein.Identifier = strings.TrimPrefix(line, ">")
-
+			//If the line is not empty then we just add the line.
 		} else if line != "" {
 			// case when line is not protein identifier and not empty, meaning it has the sequence
 			currProtein.Sequence += line
@@ -43,14 +53,21 @@ func ReadProteinsFASTA(fastaReader FASTAReader) []Protein {
 		}
 	}
 
+	//Append the protein data structure to the list of proteins.
 	proteins = append(proteins, currProtein)
 	currProtein = Protein{}
 
+	//Return the slice of proteins.
 	return proteins
 }
 
+// Function to create a Cif reader data structure using a file name string..
+// Input: File name string input.
+// Output: Cif data structure output.
 func GenerateCIFReader(fileName string) *CIFReader {
+	//Opens the file using the filename.
 	file, err := os.Open(fileName)
+	//If there is an error panic!
 	if err != nil {
 		log.Panic(err)
 	}
