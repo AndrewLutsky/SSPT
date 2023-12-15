@@ -8,16 +8,19 @@ Outdated Secondary Structure Tool using Golang.
 # About Files and Directories:
 - `main.go` - Main file for the program. Contains the main function in which we call the algorithm-executing functions.
 - `datatypes.go` - Custom datatypes used throughout the project. 
-- `CFparameters.txt` - Parameters file (Chou-Fasman) for testing purposes.
+- `CFparameters.txt` - Parameters file for Chou-Fasman prediction algorithm.
+- `GorParams/*` - Parameter files for GOR prediction algorithm.
 - `aa_index_map.txt` - Amino acid index map for Chou-Fasman algorithm.
-- `functions_shashank.go` - Functions for visualizing the secondary structure in 2D and 3D.
-- `functions_jon.go` - Testing grounds for Jon's contributions to the project. Currently focusing on CF2.
-- `functions_andrew.go` - CF6 and visualization testing
+- `aa_index_map_gor.txt` - Amino acid index map for the GOR algorithm.
 - `functions_rohit.go` - Functions for reading and writing to files.
 - `SSPT` and `SSPT.exe` - Executable files for the program for Mac and Windows.
 - `3d_visualization_resources` - Contains the pdbs and template html required for the 3d visualization.
-- `output_files` - Contains the output files (2D plots, 3D html, and downloaded fastas of the ensembls provided).
+- `outputs` - Contains the output files (2D plots, 3D html, and downloaded fastas of the ensembls provided).
+- `results` - Contains the output from testing the accuracies of the GOR and Chou-Fasman predictions.
+  - `results/ExpectedValues/*` - Contains validation files from SECNET 2018 dataset.
+  - `results/Output/results.csv` - Contains the csv file containing the accuracies of the algorithms.
 - `miscellaneous` - Contains the miscellaneous files that are not required for the program to run, but were used in the development process.
+- `Results.ipynb` - Jupyter notebook containing plots of our results for accuracies.
 
 # Usage
 - To run the program, the gget package must be installed. Open terminal (create a new conda environment if needed) and run:
