@@ -143,17 +143,18 @@ func MergeTurns(identifiedTurns []Turn, secStruc []ABHelixSheet) []ABHelixSheet 
 					upToTurn := make([]ABHelixSheet, 0)
 					afterTurn := make([]ABHelixSheet, 0)
 					if j != 0 {
-						upToTurn = CopySecondaryStructure(secStruc[:j])
+
+						upToTurn = CopySecondaryStructure(secStruc[:j+1])
+						fmt.Println(secStruc[:j])
 						upToTurn[j].EndIndex -= 1
 					} else {
 						upToTurn = []ABHelixSheet{secStruc[j]}
+						upToTurn[j].EndIndex -= 1
 					}
-					afterTurn = CopySecondaryStructure(secStruc[j:])
-					afterTurn[0].StartIndex += 1
+					afterTurn = CopySecondaryStructure(secStruc[j+1:])
+
 					secStruc = append(upToTurn, *newTurn)
-					if len(secStruc) != 2 {
-						secStruc = append(secStruc, afterTurn...)
-					}
+					secStruc = append(secStruc, afterTurn...)
 				} else {
 					//split the secondary structure into two
 					fmt.Println("Split")

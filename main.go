@@ -104,7 +104,7 @@ func main() {
 			reassignedABHelixSheet := AHelicalBSheetAssignment(append(helices, betaSheets...))
 			reassignedABHelixSheet = FillGapsInSequence(len(ProteinPredArray), reassignedABHelixSheet)
 			//fmt.Println("\n\nFound after Reassignment:", reassignedABHelixSheet)
-			//reassignedABHelixSheet = IdentifyTurns(protein, parameters, aaIndexMap, reassignedABHelixSheet)
+			reassignedABHelixSheet = IdentifyTurns(protein, parameters, aaIndexMap, reassignedABHelixSheet)
 			fmt.Println("\n\nFound after Reassignment:", reassignedABHelixSheet)
 			fmt.Println("Completed secondary structure assignment using CF!")
 
@@ -182,6 +182,6 @@ func main() {
 	}
 
 	// below line is for testing purposes
-	// TestGorAndFasman("results/ExpectedValues", parameters, aaIndexMap)
+	//TestGorAndFasman("results/ExpectedValues", parameters, aaIndexMap)
 
 }
