@@ -96,125 +96,196 @@ func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]
 
 	}
 
-	//Now that we have created a list of
-	//Checks to see if the given index is a beta sheet ->
+	//Now that we have created a list of turns we merge the turns into the secondary structure
+	//and return the new secndary structure.
 	return MergeTurns(turns, secStruc)
 }
 
+// Functions to identify turns given a slice of turns and an existing ABHelixSheet data structure.
+// It returns a new ABHelixSheet with turns included in the secondary structure.
+// Input: A slice of turn data structures and an existing ABHelixSheet that has already identified
+// Helices and Sheets.
+// Output: A new modified ABHelixSheet datastructure with incorporated turns into the existing
+// secondary structure so that we have identified secondary structures for coils, turns, helices
+// and beta sheets.
 func MergeTurns(identifiedTurns []Turn, secStruc []ABHelixSheet) []ABHelixSheet {
 
+	//Range through the slice of identified turns.
 	for i := range identifiedTurns {
+		//Flag to break thorugh the range of the secondary structure.
 		flagBreak := false
+
+		//Set the index for the turn.
 		indTurn := identifiedTurns[i].Index
+		//Break label to break out of for loop once found the correct sheet.
 	out:
+		//Range through secondary structures.
 		for j, structure := range secStruc {
+			//Check if the index of the turn is after the end index of structure.
 			if indTurn > structure.EndIndex {
+				//Continue if the index is after the end index.
 				continue
 			}
+
+			//If the structure is not a sheet continue to the next structure.
 			if structure.typeAB != "sheet" {
 				continue
 			}
 
+			//Create a new ABHelixSheet structure that is a turn.
 			newTurn := new(ABHelixSheet)
 			newTurn.StartIndex = indTurn
 			newTurn.EndIndex = indTurn
 			newTurn.typeAB = "Turn"
 
+			//Check to see if the turn is in any of the secondary structure element.
 			if inSecondStructure(indTurn, structure) {
 				//Three cases
-				//index of the turn is at start index
+				//Index of the turn is at start index.
 				if indTurn == structure.StartIndex {
-					fmt.Println("Start Index")
+					//Check to see if we are on the first structure.
 					if j == 0 {
+						//Increment the adjacent secondary structure start index by one.
 						secStruc[j].StartIndex += 1
+
+						//Append the new turn to the secondary structure.
 						secStruc = append([]ABHelixSheet{*newTurn}, secStruc...)
 					} else {
+						//If we are not on the first structure we do the following.
+
+						//Split the secondary structure slices into two arrays.
 						upToTurn := make([]ABHelixSheet, len(secStruc[:j]))
 						afterTurn := make([]ABHelixSheet, len(secStruc[j:]))
 						upToTurn = CopySecondaryStructure(secStruc[:j])
+						//Decrease the previous secondary structure by 1.
 						upToTurn[len(upToTurn)-1].EndIndex -= 1
 						afterTurn = CopySecondaryStructure(secStruc[j:])
+
+						//Increase the start index after we insert the turn by 1.
 						afterTurn[0].StartIndex += 1
+
+						//Append/Insert the new turn into the secondary structure.
 						secStruc = append(upToTurn, *newTurn)
 						secStruc = append(secStruc, afterTurn...)
 					}
 				} else if indTurn == structure.EndIndex {
-					fmt.Println("End index", j)
+					//Index of the turn is at the end of the start index.
+
+					//Create two slices,one up to where we will insert the new turn and after
+					//the new turn.
 					upToTurn := make([]ABHelixSheet, 0)
 					afterTurn := make([]ABHelixSheet, 0)
+					//Check to see if we are on the first structure.
 					if j != 0 {
-
+						//If we are not on the first structure we copy up until the current sheet
+						//to the slice.
 						upToTurn = CopySecondaryStructure(secStruc[:j+1])
-						fmt.Println(secStruc[:j])
+						//Decrease the current sheet end index by one.
 						upToTurn[j].EndIndex -= 1
 					} else {
+						//If we are on the first structure we only need the first sheet/first structure.
 						upToTurn = []ABHelixSheet{secStruc[j]}
+						//Decrease the end index of the current sheet by one.
 						upToTurn[j].EndIndex -= 1
 					}
-					afterTurn = CopySecondaryStructure(secStruc[j+1:])
 
+					//Copy the secondary structure up to current sheet.
+					afterTurn = CopySecondaryStructure(secStruc[j+1:])
+					//Append the new turn to the copy.
 					secStruc = append(upToTurn, *newTurn)
+					//Append the remaining secondary structure to the copy and the turn.
 					secStruc = append(secStruc, afterTurn...)
 				} else {
-					//split the secondary structure into two
-					fmt.Println("Split")
+					//split the secondary structure into two different sheets.
+
+					//Create two ABHelixSheet data structures.
 					firstStruc := *new(ABHelixSheet)
 					secondStruc := *new(ABHelixSheet)
 
+					//Create copies of the sheet we want to split in half.
 					firstStruc = CopyHelixSheet(secStruc[j])
 					secondStruc = CopyHelixSheet(firstStruc)
 
+					//Adjust their start and end indeces respectively.
 					firstStruc.EndIndex = indTurn - 1
 					secondStruc.StartIndex = indTurn + 1
 
+					//Add a panic to check that the indices are the right length.
 					if secondStruc.StartIndex > secondStruc.EndIndex {
 						panic("This shouldn't happen! Start index is bigger!")
 					}
 
+					//Create two slices of up to the turn and after the turn.
 					upToTurn := make([]ABHelixSheet, len(secStruc[:j]))
 					afterTurn := make([]ABHelixSheet, len(secStruc[j:]))
+
+					//Copy the slice of the secondary structure up to the turn and after the turn.
 					upToTurn = CopySecondaryStructure(secStruc[:j])
 					afterTurn = CopySecondaryStructure(secStruc[j+1:])
 
+					//Append the uptoturn with the first split of the secondary structure.
 					secStruc = append(upToTurn, firstStruc)
+					//Append the turn after the first split of the secondary structure.
 					secStruc = append(secStruc, *newTurn)
+					//Append the second split after the turn of the secondary structure.
 					secStruc = append(secStruc, secondStruc)
+					//Append the remaining elements to the uptoturn + firstsplit + turn + secondsplit.
 					secStruc = append(secStruc, afterTurn...)
 
 				}
+
+				//Set the flag to true as it means that we have inserted our turn, because the turn
+				//was found in the secondary structure.
 				flagBreak = true
-				fmt.Println("exit turn")
 			}
+
+			//Checks to see if the flag is true and if it is we don't have to keep searching for
+			//the position to insert our turn into.
 			if flagBreak {
+				//Jump to the label out.
 				break out
 			}
 		}
-		fmt.Println(secStruc)
+
 	}
-
+	//Return the new secondary structure list, with turns inserted in the proper areas.
 	return secStruc
-
 }
 
+// Function to copy secondary structure ABHelixSheet slice.
+// Input: A slice of ABHelixSheet.
+// Output: A value copy of the slice.
 func CopySecondaryStructure(secStruc []ABHelixSheet) []ABHelixSheet {
+	//Create a slice of the same length.
 	newSecStruc := make([]ABHelixSheet, len(secStruc))
+	//Range through the slice.
 	for i := range secStruc {
+		//Copy each individual data structure, ABHelixSheet using the CopyHelixSheet function.
 		newSecStruc[i] = CopyHelixSheet(secStruc[i])
 	}
 
+	//Return the new secondary sturcture.
 	return newSecStruc
 }
 
+// A function to copy secondary structure ABHelixSheet.
+// Input: A specific ABHelixSheet data structure.
+// Output: A value copy of that data structure.
 func CopyHelixSheet(helixOrSheet ABHelixSheet) ABHelixSheet {
+	//Creates a new variable/ABHelixSheet.
 	newHelixSheet := new(ABHelixSheet)
+	//Copies the parameters directly (there are no slice parameters.)
 	newHelixSheet.typeAB = helixOrSheet.typeAB
 	newHelixSheet.Score = helixOrSheet.Score
 	newHelixSheet.StartIndex = helixOrSheet.StartIndex
 	newHelixSheet.EndIndex = helixOrSheet.EndIndex
 
+	//Returns the copy of the ABHelixSheet.
 	return *newHelixSheet
 }
 
+// A function that will serve to help if a turn can be inserted into a sheet or another type
+// of structure.
 func inSecondStructure(index int, betaSheet ABHelixSheet) bool {
 	startInd, endInd := betaSheet.StartIndex, betaSheet.EndIndex
 	if startInd <= index && index <= endInd {
