@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"math"
 	"net/http"
@@ -126,58 +127,6 @@ func ChouFasman(protein Protein, parameters [][]float64, aaIndexMap map[rune]int
 
 	//fmt.Println(predictionArray)
 	return predictionArray
-}
-
-// read in parameters as a dictionary - INCOMPLETE
-// Input: file string
-// Output: Map from amino acid character to a score given by that amino acid
-func ReadParametersDict(file string) map[string]float64 {
-	//Create map
-	param := make(map[string]float64)
-	namesToChars := NameToChar("Names.txt")
-	//open file
-	f, err := os.Open(file)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		// Split the line into a slice of strings
-		lineSplit := strings.Split(line, " ")
-
-		//First value is amino acid name
-		aminoChar := lineSplit[0]
-		aminoChar = namesToChars[aminoChar]
-
-		//Second value is P(a).
-		aminoScore, err := strconv.ParseInt(lineSplit[1], 10, 63)
-
-		//If there is an error panic.
-		if err != nil {
-			panic(err)
-
-		}
-
-		//Third Value is P(b)
-
-		//Fourth value is P(turn)
-
-		//Fifth value is P(i+1)
-
-		//Sixth value is P(i+2)
-
-		//Seventh Value is P(i+3)
-
-		//Map the amino acid character to the amino acid score.
-		param[aminoChar] = float64(aminoScore)
-
-	}
-
-	// Return the parameters hashmap.
-	return param
 }
 
 // Function that reads amino acid string name to a character. See Names.txt to examine file mappings from names to chars
@@ -1039,3 +988,605 @@ func MakeDNAOutputNames(proteins []Protein) []string {
 }
 
 // ALL VISUALIZATION FUNCTIONS END HERE
+
+//Functions for identifying turns and for GOR start here.
+
+//Function to identify bends in the protein.
+
+/*
+To identify a bend at residue number j, calculate the following value
+p(t) = f(j)f(j+1)f(j+2)f(j+3) where the f(j+1) value for the j+1 residue is used,
+the f(j+2) value for the j+2 residue is used and the f(j+3) value for the j+3 residue is used.
+If: (1) p(t) > 0.000075; (2) the average value for P(turn) > 1.00 in the tetrapeptide;
+and (3) the averages for the tetrapeptide obey the inequality P(a-helix) < P(turn) > P(b-sheet),
+then a beta-turn is predicted at that location.
+*/
+
+// Function that identifies turns given a particular protein structure, the parameters, an index map,
+// and a given ABHelix Sheet structure. It only finds turns in beta sheets.
+// Outputs: A new ABHelix Sheet structure with modified Beta Sheets that are interrupted with turns.
+// For example given a Sheet that goes from 1 to 10 and a turn that has been identified at 5, the
+// returned structure would be a sheet from 1 to 4, a turn at 5, and a sheet from 6 to 10.
+func IdentifyTurns(protein Protein, parameters [][]float64, aaIndexMap map[rune]int, secStruc []ABHelixSheet) []ABHelixSheet {
+	//Create a slice of turn data types
+	turns := make([]Turn, 0)
+
+	//Range through the protein sequence up until the last three(no parameters for these variables)
+	for i := 0; i < len(protein.Sequence)-3; i++ {
+		//Step 1 calculate the product of f(j) * f(j+1) * f(j+2) * f(j+3)
+
+		//Get the parameters for the next four amino acids
+
+		//J'th amino acid index.
+		aaIndex := aaIndexMap[rune(protein.Sequence[i])]
+		//J + 1 amino acid index.
+		aaIndexPlusOne := aaIndexMap[rune(protein.Sequence[i+1])]
+		//J+2 amino acid index.
+		aaIndexPlusTwo := aaIndexMap[rune(protein.Sequence[i+2])]
+		//J+3 amino acid index.
+		aaIndexPlusThree := aaIndexMap[rune(protein.Sequence[i+3])]
+
+		//Create the parameter value for those indeces using the parameters look up table.
+		p_t := parameters[aaIndex][3]
+		p_t *= parameters[aaIndexPlusOne][4]
+		p_t *= parameters[aaIndexPlusTwo][5]
+		p_t *= parameters[aaIndexPlusThree][6]
+
+		//Create a boolean to see if it satisfies the first condition.
+		satisfiesCond1 := p_t > 0.000075
+
+		//Step 2 calculate the average of P(turn) for the tetrapeptide.
+		//Sum all the parameter values for the tetrapeptide.
+		avgTurn := parameters[aaIndex][2]
+		avgTurn += parameters[aaIndexPlusOne][2]
+		avgTurn += parameters[aaIndexPlusTwo][2]
+		avgTurn += parameters[aaIndexPlusThree][2]
+
+		//Create another boolean to see if it satisfies the second condition that the
+		//average is greater than one.
+		satisfiesCond2 := avgTurn/4.0 > 1.0
+
+		//Step 3 - Check Inequality
+
+		//Finds the P(alpha) for the tetrapeptide.
+		avgAlpha := parameters[aaIndex][0]
+		avgAlpha += parameters[aaIndexPlusOne][0]
+		avgAlpha += parameters[aaIndexPlusTwo][0]
+		avgAlpha += parameters[aaIndexPlusThree][0]
+		avgAlpha /= 4.0
+
+		//Find sthe P(beta) for the tetrapeptide.
+		avgBeta := parameters[aaIndex][1]
+		avgBeta += parameters[aaIndexPlusOne][1]
+		avgBeta += parameters[aaIndexPlusTwo][1]
+		avgBeta += parameters[aaIndexPlusThree][1]
+		avgBeta /= 4.0
+
+		//Creates a boolean to see if it satisfies the inequality.
+		satisfiesCond3 := avgTurn > avgAlpha && avgTurn > avgBeta
+
+		//Checks to see if all three conditions are met.
+		if satisfiesCond1 && satisfiesCond2 && satisfiesCond3 {
+			//Creates a new turn data type.
+			//Sets the index of the turn.
+			newTurn := new(Turn)
+			newTurn.Index = i
+
+			//Appends the new turn to the slice of turns.
+			turns = append(turns, *newTurn)
+		}
+
+	}
+
+	//Now that we have created a list of turns we merge the turns into the secondary structure
+	//and return the new secndary structure.
+	return MergeTurns(turns, secStruc)
+}
+
+// Functions to identify turns given a slice of turns and an existing ABHelixSheet data structure.
+// It returns a new ABHelixSheet with turns included in the secondary structure.
+// Input: A slice of turn data structures and an existing ABHelixSheet that has already identified
+// Helices and Sheets.
+// Output: A new modified ABHelixSheet datastructure with incorporated turns into the existing
+// secondary structure so that we have identified secondary structures for coils, turns, helices
+// and beta sheets.
+func MergeTurns(identifiedTurns []Turn, secStruc []ABHelixSheet) []ABHelixSheet {
+
+	//Range through the slice of identified turns.
+	for i := range identifiedTurns {
+		//Flag to break thorugh the range of the secondary structure.
+		flagBreak := false
+
+		//Set the index for the turn.
+		indTurn := identifiedTurns[i].Index
+		//Break label to break out of for loop once found the correct sheet.
+	out:
+		//Range through secondary structures.
+		for j, structure := range secStruc {
+			//Check if the index of the turn is after the end index of structure.
+			if indTurn > structure.EndIndex {
+				//Continue if the index is after the end index.
+				continue
+			}
+
+			//If the structure is not a sheet continue to the next structure.
+			if structure.typeAB != "sheet" {
+				continue
+			}
+
+			//Create a new ABHelixSheet structure that is a turn.
+			newTurn := new(ABHelixSheet)
+			newTurn.StartIndex = indTurn
+			newTurn.EndIndex = indTurn
+			newTurn.typeAB = "Turn"
+
+			//Check to see if the turn is in any of the secondary structure element.
+			if inSecondStructure(indTurn, structure) {
+				//Three cases
+				//Index of the turn is at start index.
+				if indTurn == structure.StartIndex {
+					//Check to see if we are on the first structure.
+					if j == 0 {
+						//Increment the adjacent secondary structure start index by one.
+						secStruc[j].StartIndex += 1
+
+						//Append the new turn to the secondary structure.
+						secStruc = append([]ABHelixSheet{*newTurn}, secStruc...)
+					} else {
+						//If we are not on the first structure we do the following.
+
+						//Split the secondary structure slices into two arrays.
+						upToTurn := make([]ABHelixSheet, len(secStruc[:j]))
+						afterTurn := make([]ABHelixSheet, len(secStruc[j:]))
+						upToTurn = CopySecondaryStructure(secStruc[:j])
+						//Decrease the previous secondary structure by 1.
+						upToTurn[len(upToTurn)-1].EndIndex -= 1
+						afterTurn = CopySecondaryStructure(secStruc[j:])
+
+						//Increase the start index after we insert the turn by 1.
+						afterTurn[0].StartIndex += 1
+
+						//Append/Insert the new turn into the secondary structure.
+						secStruc = append(upToTurn, *newTurn)
+						secStruc = append(secStruc, afterTurn...)
+					}
+				} else if indTurn == structure.EndIndex {
+					//Index of the turn is at the end of the start index.
+
+					//Create two slices,one up to where we will insert the new turn and after
+					//the new turn.
+					upToTurn := make([]ABHelixSheet, 0)
+					afterTurn := make([]ABHelixSheet, 0)
+					//Check to see if we are on the first structure.
+					if j != 0 {
+						//If we are not on the first structure we copy up until the current sheet
+						//to the slice.
+						upToTurn = CopySecondaryStructure(secStruc[:j+1])
+						//Decrease the current sheet end index by one.
+						upToTurn[j].EndIndex -= 1
+					} else {
+						//If we are on the first structure we only need the first sheet/first structure.
+						upToTurn = []ABHelixSheet{secStruc[j]}
+						//Decrease the end index of the current sheet by one.
+						upToTurn[j].EndIndex -= 1
+					}
+
+					//Copy the secondary structure up to current sheet.
+					afterTurn = CopySecondaryStructure(secStruc[j+1:])
+					//Append the new turn to the copy.
+					secStruc = append(upToTurn, *newTurn)
+					//Append the remaining secondary structure to the copy and the turn.
+					secStruc = append(secStruc, afterTurn...)
+				} else {
+					//split the secondary structure into two different sheets.
+
+					//Create two ABHelixSheet data structures.
+					firstStruc := *new(ABHelixSheet)
+					secondStruc := *new(ABHelixSheet)
+
+					//Create copies of the sheet we want to split in half.
+					firstStruc = CopyHelixSheet(secStruc[j])
+					secondStruc = CopyHelixSheet(firstStruc)
+
+					//Adjust their start and end indeces respectively.
+					firstStruc.EndIndex = indTurn - 1
+					secondStruc.StartIndex = indTurn + 1
+
+					//Add a panic to check that the indices are the right length.
+					if secondStruc.StartIndex > secondStruc.EndIndex {
+						panic("This shouldn't happen! Start index is bigger!")
+					}
+
+					//Create two slices of up to the turn and after the turn.
+					upToTurn := make([]ABHelixSheet, len(secStruc[:j]))
+					afterTurn := make([]ABHelixSheet, len(secStruc[j:]))
+
+					//Copy the slice of the secondary structure up to the turn and after the turn.
+					upToTurn = CopySecondaryStructure(secStruc[:j])
+					afterTurn = CopySecondaryStructure(secStruc[j+1:])
+
+					//Append the uptoturn with the first split of the secondary structure.
+					secStruc = append(upToTurn, firstStruc)
+					//Append the turn after the first split of the secondary structure.
+					secStruc = append(secStruc, *newTurn)
+					//Append the second split after the turn of the secondary structure.
+					secStruc = append(secStruc, secondStruc)
+					//Append the remaining elements to the uptoturn + firstsplit + turn + secondsplit.
+					secStruc = append(secStruc, afterTurn...)
+
+				}
+
+				//Set the flag to true as it means that we have inserted our turn, because the turn
+				//was found in the secondary structure.
+				flagBreak = true
+			}
+
+			//Checks to see if the flag is true and if it is we don't have to keep searching for
+			//the position to insert our turn into.
+			if flagBreak {
+				//Jump to the label out.
+				break out
+			}
+		}
+
+	}
+	//Return the new secondary structure list, with turns inserted in the proper areas.
+	return secStruc
+}
+
+// Function to copy secondary structure ABHelixSheet slice.
+// Input: A slice of ABHelixSheet.
+// Output: A value copy of the slice.
+func CopySecondaryStructure(secStruc []ABHelixSheet) []ABHelixSheet {
+	//Create a slice of the same length.
+	newSecStruc := make([]ABHelixSheet, len(secStruc))
+	//Range through the slice.
+	for i := range secStruc {
+		//Copy each individual data structure, ABHelixSheet using the CopyHelixSheet function.
+		newSecStruc[i] = CopyHelixSheet(secStruc[i])
+	}
+
+	//Return the new secondary sturcture.
+	return newSecStruc
+}
+
+// A function to copy secondary structure ABHelixSheet.
+// Input: A specific ABHelixSheet data structure.
+// Output: A value copy of that data structure.
+func CopyHelixSheet(helixOrSheet ABHelixSheet) ABHelixSheet {
+	//Creates a new variable/ABHelixSheet.
+	newHelixSheet := new(ABHelixSheet)
+	//Copies the parameters directly (there are no slice parameters.)
+	newHelixSheet.typeAB = helixOrSheet.typeAB
+	newHelixSheet.Score = helixOrSheet.Score
+	newHelixSheet.StartIndex = helixOrSheet.StartIndex
+	newHelixSheet.EndIndex = helixOrSheet.EndIndex
+
+	//Returns the copy of the ABHelixSheet.
+	return *newHelixSheet
+}
+
+// A function that will serve to help if a turn can be inserted into a sheet or another type
+// of structure.
+// Input: An integer index and a given ABHelixSheet data structure.
+// Output: A boolean value if the index is within the ABHelixSheet range.
+func inSecondStructure(index int, betaSheet ABHelixSheet) bool {
+	//Define the start and end indeces of the given ABHelixSheet (presumably a sheet.)
+	startInd, endInd := betaSheet.StartIndex, betaSheet.EndIndex
+	//Checks to see if the index is in the correct range.
+	if startInd <= index && index <= endInd {
+		//Returns true if it meets these conditions.
+		return true
+	}
+	//Otherwise returns false.
+	return false
+}
+
+// Function to assess accuracy of predicted vs real string of secondary structures.
+// Input: A prediction secondary structure string and a real secondary structure string.
+// Output: Four float values, an accuracy float, a helix accuracy float, a sheet accuracy float,
+// and a coil accuracy float.
+func assessAccuracy(predSS, realSS string) (float64, float64, float64, float64) {
+	//Check to see if the lengths of the two strings are the same.
+	if len(predSS) != len(realSS) {
+		print(len(predSS), len(realSS))
+		panic("Not the same length secondary structure!")
+	}
+
+	//Create various floats for counting number of correctly identified secondary structures
+	//and total secondary structures. One for each ss, helices, sheets, and coils.
+	var count float64
+	var countCorrectHelices, totalHelices float64
+	var countCorrectSheets, totalSheets float64
+	var countCorrectCoils, totalCoils float64
+
+	//Range through the predicted secondary structure.
+	for i := range predSS {
+		//Check to see if the real and the predicted are the same.
+		if predSS[i] == realSS[i] {
+			//If they are increment the regular count.
+			count++
+			//Check to see what kind of secondary structure that was correctly identified is.
+			if string(predSS[i]) == "H" {
+				//Increment countCorrect helices.
+				countCorrectHelices++
+			} else if string(predSS[i]) == "S" {
+				//Increment countCorrectSheets.
+				countCorrectSheets++
+			} else {
+				//Otherwise you increment coils.
+				countCorrectCoils++
+			}
+		}
+
+		//If the predicted is not the same as the real, then wee just want to increment total
+		//number /counts of those specific secondary structures.
+		if string(realSS[i]) == "H" {
+			//Increment total helices count.
+			totalHelices++
+		} else if string(realSS[i]) == "S" {
+			//Increment total sheets count.
+			totalSheets++
+		} else {
+			//Increment total coils count.s
+			totalCoils++
+		}
+
+	}
+
+	//Find total accuracy.
+	acc := count / float64(len(predSS))
+
+	//Find the individual accuracies of the various secondary structures and return as four
+	//float values.
+	accH := countCorrectHelices / totalHelices
+	accS := countCorrectSheets / totalSheets
+	accC := countCorrectCoils / totalCoils
+
+	//Return the accuracies.
+	return acc, accH, accS, accC
+}
+
+// Function to convert an integer slice to a string. This is a temporary datatype to convert
+// ABHelixSheets to a slice of integers to an evnetual string.
+// Input: A slice of integers.
+// Output: A secondary structure string.
+func convertAASecStrucToString(aaSecStruc []int) string {
+	//Create a variable for containing the whole string.
+	totalString := ""
+
+	//Range through the slice of integers.
+	for _, val := range aaSecStruc {
+		//If the value is two, we add an S to the string.
+		if val == 2 {
+			totalString += "S"
+		} else if val == 1 {
+			//Otherwise we add an H for a helix.
+			totalString += "H"
+		} else {
+			//If neither of those occurs then we add a loop or L.
+			totalString += "L"
+		}
+	}
+
+	//We then return the total string.
+	return totalString
+}
+
+// Function that writes out the accuracies of the validation test sets given the directory of
+// the validation tests, the gor parameters, and an index map for gor and the various parameters.
+// Input: A directory string for the validation tests, a 2d float64 slice for the parameters, and
+// an index map for the gor parameters.
+// Output: Writes out a csv file that contains the accuracy for each different secondary structure.
+func TestGorAndFasman(dir string, parameters [][]float64, aaIndexMap map[rune]int) {
+	//Range through all of the results validation tests.
+	files := ReadDirectory(dir)
+	//Create a prediction array for both GOR and Chou-Fasman.
+	ProteinPredArray := make([][]CFScore, len(files))
+	ProteinPredGorArray := make([][]CFScore, len(files))
+
+	//Read in the parameters for GOR from the validation test set (SecNet 2018)
+	alphaParam := GORMethodInput("GorParams/alpha_helix.txt")
+	sheetParam := GORMethodInput("GorParams/beta_strand.txt")
+	turnParam := GORMethodInput("GorParams/beta_turn.txt")
+	coilParam := GORMethodInput("GorParams/coil.txt")
+
+	//Open the csv file and if there is an error panic.
+	file, err := os.Create("results/Output/results.csv")
+	//If error, panic.
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	//Print out the protein name, the accuracies for chou fasman, and then the accuracy for
+	//Gor out into the csv file for header information.
+	fmt.Fprintf(file, "Protein Name, accCF, accCFHelices, accCFSheets, accCFCoils, accGor, accGorHelices, accGorSheets, accGorCoils")
+	//Range thorugh the different validation sets.
+	for i, inputFile := range files {
+		//Do Chou-Fasman on this input file.
+		//Create a protein from this input file.
+		var newProt Protein
+
+		//Create a variable for the actual structure string.
+		var actualStructure string
+		newProt.Sequence, actualStructure = GORReadTests(dir + "/" + inputFile.Name())
+		//Set the identifier using the input file name's first five letters.
+		newProt.Identifier = inputFile.Name()[0:5]
+
+		//Take the structure and map the structure to a comparable format.
+		actualStructure = mapSSToLocalStructure(actualStructure)
+
+		//Create the CFScore slice using the Chou-Fasman function method.
+		ProteinPredArray[i] = ChouFasman(newProt, parameters, aaIndexMap)
+		//Predict helices.
+		helices := IdentifyHelicies(ProteinPredArray[i])
+
+		//Predict beta sheets.
+		betaSheets := IdentifySheets2(ProteinPredArray[i])
+
+		//Reassign the helices and sheets as appropriate.
+		reassignedABHelixSheet := AHelicalBSheetAssignment(append(helices, betaSheets...))
+		reassignedABHelixSheet = FillGapsInSequence(len(ProteinPredArray), reassignedABHelixSheet)
+
+		//Reassign structures for turns.
+		reassignedABHelixSheet = IdentifyTurns(newProt, parameters, aaIndexMap, reassignedABHelixSheet)
+
+		//Create a slice of integers.
+		aaSecStructCFSingle := make([]int, len(newProt.Sequence))
+
+		// Make int slice, which would store the information about the secondary structure of each position
+		// (1 = helix, 2 = sheet, 3 = loop).
+
+		// It should be initialized with 3s (as if not helix or sheet, then loop) and we assign helix and sheet below
+		for i := 0; i < len(aaSecStructCFSingle); i++ {
+			aaSecStructCFSingle[i] = 3
+		}
+
+		//Convert the reassignedABHelixSheet slice to aaSecStruct slice.
+		aaSecStructSingle := ConvertABHelixSheetToAASecStruct(reassignedABHelixSheet, aaSecStructCFSingle)
+
+		//Convert this aaSecStruct into a string that can be used to compare to the actual structure
+		//string.
+		cfstr := convertAASecStrucToString(aaSecStructSingle)
+		//Generate the accuracies for chou-fasman!
+		accCF, accCFHelices, accCFSheets, accCFCoils := assessAccuracy(cfstr, actualStructure)
+
+		//Do GOR on this same file!
+		//Create a 3d array of parameters for GOR.
+		params := make([][][]float64, 4)
+
+		//Set the various parameters for each different secondary structure.
+		params[0], params[1], params[2], params[3] = alphaParam, sheetParam, turnParam, coilParam
+		//Create an index map using the aa_index for gor parameters.
+		aaIndexMap := ReadAAIndexMap("aa_index_map_gor.txt")
+
+		//Create a protein prediction array using GORPrediciton method. This hijacks the CFScore data
+		//structure to streamline the use of data-structures.
+		ProteinPredGorArray[i] = GORPrediction(newProt, params, aaIndexMap)
+		//Converts this temporary CFScore into an int array and then into a slice of ABHelixSheets.
+		//This will then allow the previously outlined method for GOR to convert back into a slice of
+		//integers.
+
+		//Convert to an ABHelix Slice.
+		ssStruc := GorPredictionConv(ConvertPredToArr(ProteinPredGorArray[i]))
+		// Make int slice, which would store the information about the secondary structure of each position
+		// (1 = helix, 2 = sheet, 3 = loop).
+		//Create a slice of integers the same length as the protein sequence.
+		aaSecStructGORSingle := make([]int, len(newProt.Sequence))
+
+		// It should be initialized with 3s (as if not helix or sheet, then loop) and we assign helix and sheet below
+		for i := 0; i < len(aaSecStructGORSingle); i++ {
+			aaSecStructGORSingle[i] = 3
+		}
+
+		// Convert the reassignedABHelixSheet slice to aaSecStruct slice.
+		aaSecStructSingle = ConvertABHelixSheetToAASecStruct(ssStruc, aaSecStructGORSingle)
+
+		//Convert this into a string with S, H, or L.
+		gorstr := convertAASecStrucToString(aaSecStructSingle)
+		//Find the accuracies for GOR.
+		accGor, accGorHelices, accGorSheets, accGorCoils := assessAccuracy(gorstr, actualStructure)
+
+		//Write out all the accuracies into the csv file.
+		//Convert all the accuracies into strings.
+		accCFStr := strconv.FormatFloat(accCF, 'f', -1, 64)
+		accCFHelicesStr := strconv.FormatFloat(accCFHelices, 'f', -1, 64)
+		accCFSheetsStr := strconv.FormatFloat(accCFSheets, 'f', -1, 64)
+		accCFCoilsStr := strconv.FormatFloat(accCFCoils, 'f', -1, 64)
+		accGorStr := strconv.FormatFloat(accGor, 'f', -1, 64)
+		accGorHelicesStr := strconv.FormatFloat(accGorHelices, 'f', -1, 64)
+		accGorSheetsStr := strconv.FormatFloat(accGorSheets, 'f', -1, 64)
+		accGorCoilsStr := strconv.FormatFloat(accGorCoils, 'f', -1, 64)
+
+		//Print a new line into the csv file.
+		fmt.Fprintf(file, "\n")
+		//Print out all the accuracies to the csv file.
+		fmt.Fprintf(file, newProt.Identifier+","+accCFStr+","+accCFHelicesStr+","+accCFSheetsStr+","+accCFCoilsStr+","+accGorStr+","+accGorHelicesStr+","+accGorSheetsStr+","+accGorCoilsStr)
+	}
+
+}
+
+// This functtion takes in the inputs from the GorParams folder and turns them into a prediction
+// protein string and the real secondary structure string.
+// Input: A file string.
+// Output: Two strings, one being the protein sequence, and one being the actual secondary structure
+// of the protein.
+func GORReadTests(file string) (string, string) {
+	//Open the file.
+	f, err := os.Open(file)
+	if err != nil {
+		//Panic if it can't open.
+		log.Panicf("Cannot open file: %s", err)
+	}
+	//Create two new string variables.
+	var ss string
+	var seq string
+
+	//Scan the file.
+	scanner := bufio.NewScanner(f)
+
+	//Create a counter variable.
+	var counter int
+	//Scan line by line.
+	for scanner.Scan() {
+		//Read in the line into a variable,
+		line := scanner.Text()
+		//Check to see if on first line.
+		if counter == 0 {
+			//If on first line we can set the protein sequence variable.
+			seq = line
+		}
+		//If we are on second line check.
+		if counter == 1 {
+			//If we are on the second line we can set the real secondary structure to a variable.
+			ss = line
+		}
+		//Increment the line counter.
+		counter++
+	}
+
+	//Close the file after scanning.
+	defer f.Close()
+
+	//Return the two strings.
+	return seq, ss
+}
+
+// ReadDirectory reads in a directory and returns a slice of fs.DirEntry
+// objects containing file info for the directory.
+func ReadDirectory(dir string) []fs.DirEntry {
+	//read in all files in the given directory
+	files, err := os.ReadDir(dir)
+	//Checking if there is an error.
+	if err != nil {
+		panic(err)
+	}
+	//Return the files from the directory.
+	return files
+}
+
+// Function that maps the sequence from the SECNET 2018 validation file into the same local
+// program format.
+// Input: A string that contains the Secnet 2018 secondary structure.
+// Output: A locally formatted string that is in the same format as the predicted string.
+func mapSSToLocalStructure(sequenceFromSS string) string {
+	//Create a new string for the secondary structure.
+	var newSequence string
+	//Range through the real sequence from Secnet.
+	for i := range sequenceFromSS {
+		//IF the letter is a C for coil map to loop (treated the same as coil)
+		if string(sequenceFromSS[i]) == "C" {
+			newSequence += "L"
+		} else if string(sequenceFromSS[i]) == "E" {
+			//IF letter is E treat it as sheet.
+			newSequence += "S"
+		} else {
+			//Otherwise treat it as a helix.
+			newSequence += "H"
+		}
+	}
+	//Return the local format secondary structure string.
+	return newSequence
+}
+
+//Identify turn functions and GOR functions end here!
