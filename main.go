@@ -180,7 +180,7 @@ func main() {
 	} else {
 		panic("Incorrect algorithm identifier entered.")
 	}
-	fmt.Println("Testing")
+	//fmt.Println("Testing")
 	// below line is for testing purposes
 	TestGorAndFasman("results/ExpectedValues", parameters, aaIndexMap)
 

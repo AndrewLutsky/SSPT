@@ -267,19 +267,3 @@ func parseProteinPredArray(input string) ([]CFScore, error) {
 
 	return scores, nil
 }
-
-func findDiffCharByChar(str1, str2 string) []int {
-	var diffs []int
-	minLen := len(str1)
-	if len(str2) < minLen {
-		minLen = len(str2)
-	}
-
-	for i := 0; i < minLen; i++ {
-		if str1[i] != str2[i] {
-			diffs = append(diffs, i)
-		}
-	}
-
-	return diffs
-}
