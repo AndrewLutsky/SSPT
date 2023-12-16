@@ -1,9 +1,5 @@
-# (Temp)
-- need to add the details about what is in everyone's files, so need individual inputs
-- we can clean up the files (like CFParams.txt/CFparameters.txt, i think only one of them is required) a bit if they are not needed (can put the non-required ones in the miscellaneous folder)
-
 # SSPT
-Outdated Secondary Structure Tool using Golang.
+Protein Secondary Structure Prediction Tool using non-ML approaches (Chou-Fasman and GOR Algorithms). This project was created as a part of the course Programming For Scientists taken by Professor Phillip Compeau at Carnegie Mellon University, Department of Computational Biology.
 
 # About Files and Directories:
 - `main.go` - Main file for the program. Contains the main function in which we call the algorithm-executing functions.
@@ -89,7 +85,7 @@ and the following 3D visualization:
  - `Rohit Nandakumar` - Rohit contributed to the project by creating the input files for FASTA and CIF sequences. Additionally, Rohit assisted in the creation of the Chou-Fasman method, focusing on beta sheet identification. Rohit was heavily involved with creating testing functions for ten functions.
 In regards to the non-coding aspects of the project, Rohit wrote up the “Background” and “Future Advancements” sections of the paper and presentation. Lastly, Rohit attended weekly meetings with the group to discuss direction and progress.
 
-- `Shashank Katiyar` - Shashank was heavily involved in creating the visualization tool for the project and implementing overall general use data structures for the entire codebase. Shashank also attended weekly meetings with the group to discuss direction and progress. Shashank contributed to the presentation by talking about the various different approaches taken to visualize the protein structure.
+- `Shashank Katiyar` - Shashank was heavily involved in creating the visualization tool for the project as well as implementing CLI workflow options. He tied together the various components of our project and provided a CLI for the user to interact with. Subsequently, he also created detailed instructions for the usage of the program in the Readme of the project and the demonstration video. Shashank also attended weekly meetings with the group to discuss direction and progress. Shashank contributed to the presentation by talking about the various different approaches taken to visualize the protein structure and to discuss future direction and progress.
 
 
 # Code Demo
